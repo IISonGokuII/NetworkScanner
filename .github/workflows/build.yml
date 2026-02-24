@@ -1,4 +1,3 @@
-```
 name: Build NetScanner APK
 
 on:
@@ -37,23 +36,3 @@ jobs:
           name: NetworkScanner-Debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-```
-
-Speichern (Strg+S) → Notepad schließen.
-
-### 7. .gitignore erstellen:
-
-```
-notepad .gitignore
-```
-
-Füge ein:
-
-```
-*.iml
-.gradle
-/.idea
-/build
-/app/build
-local.properties
-```
