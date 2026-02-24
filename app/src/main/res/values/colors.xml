@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#FF1565C0</color>
+    <color name="primary_dark">#FF0D47A1</color>
+    <color name="primary_light">#FF42A5F5</color>
+    <color name="secondary">#FF00BFA5</color>
+    <color name="secondary_dark">#FF00897B</color>
+    <color name="background">#FFF5F5F5</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="on_primary">#FFFFFFFF</color>
+    <color name="on_secondary">#FF000000</color>
+    <color name="on_background">#FF1C1B1F</color>
+    <color name="on_surface">#FF1C1B1F</color>
+    <color name="error">#FFB3261E</color>
+    <color name="success">#FF2E7D32</color>
+    <color name="warning">#FFEF6C00</color>
+    <color name="card_wifi">#FF1565C0</color>
+    <color name="card_port">#FF6A1B9A</color>
+    <color name="card_ping">#FF00695C</color>
+    <color name="card_trace">#FFE65100</color>
+    <color name="card_dns">#FF283593</color>
+    <color name="card_subnet">#FF1B5E20</color>
+    <color name="card_wol">#FF880E4F</color>
+    <color name="card_speed">#FFBF360C</color>
+    <color name="card_http">#FF4A148C</color>
+    <color name="card_info">#FF01579B</color>
+    <color name="card_whois">#FF33691E</color>
+    <color name="card_monitor">#FF311B92</color>
+    <color name="nav_header_bg">#FF0D47A1</color>
+    <color name="dark_background">#FF121212</color>
+    <color name="dark_surface">#FF1E1E1E</color>
+    <color name="dark_on_surface">#FFE0E0E0</color>
+</resources>

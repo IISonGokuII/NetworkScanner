@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@android:drawable/ic_menu_compass"
+            android:title="@string/home" />
+        <item
+            android:id="@+id/nav_device_info"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="@string/device_info" />
+        <item
+            android:id="@+id/nav_wifi_scanner"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="@string/wifi_scanner" />
+        <item
+            android:id="@+id/nav_port_scanner"
+            android:icon="@android:drawable/ic_menu_search"
+            android:title="@string/port_scanner" />
+        <item
+            android:id="@+id/nav_ping"
+            android:icon="@android:drawable/ic_menu_send"
+            android:title="@string/ping_tool" />
+        <item
+            android:id="@+id/nav_traceroute"
+            android:icon="@android:drawable/ic_menu_mapmode"
+            android:title="@string/traceroute" />
+        <item
+            android:id="@+id/nav_dns"
+            android:icon="@android:drawable/ic_menu_view"
+            android:title="@string/dns_lookup" />
+        <item
+            android:id="@+id/nav_subnet"
+            android:icon="@android:drawable/ic_menu_share"
+            android:title="@string/subnet_scanner" />
+        <item
+            android:id="@+id/nav_wol"
+            android:icon="@android:drawable/ic_lock_power_off"
+            android:title="@string/wol" />
+        <item
+            android:id="@+id/nav_speed"
+            android:icon="@android:drawable/ic_menu_rotate"
+            android:title="@string/speed_test" />
+        <item
+            android:id="@+id/nav_http"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="@string/http_headers" />
+        <item
+            android:id="@+id/nav_whois"
+            android:icon="@android:drawable/ic_menu_myplaces"
+            android:title="@string/whois_lookup" />
+    </group>
+</menu>
