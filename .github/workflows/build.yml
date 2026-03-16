@@ -1,7 +1,9 @@
-name: Build NetScanner APK
+name: Build Djoudinis Sleeptimer APK
 
 on:
   push:
+    branches: [ main, 'claude/**' ]
+  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
@@ -30,6 +32,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NetworkScanner-Debug
+          name: DjoudinisSleeptimer-Debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
