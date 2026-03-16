@@ -254,8 +254,9 @@ fun TimerRunningScreen(
             modifier = Modifier.size(280.dp)
         ) {
             // Background circle
+            @Suppress("DEPRECATION")
             CircularProgressIndicator(
-                progress = { 1f },
+                progress = 1f,
                 modifier = Modifier.fillMaxSize(),
                 strokeWidth = 8.dp,
                 color = DarkCard,
@@ -264,8 +265,9 @@ fun TimerRunningScreen(
             )
 
             // Progress circle
+            @Suppress("DEPRECATION")
             CircularProgressIndicator(
-                progress = { animatedProgress },
+                progress = animatedProgress,
                 modifier = Modifier.fillMaxSize(),
                 strokeWidth = 8.dp,
                 color = progressColor,

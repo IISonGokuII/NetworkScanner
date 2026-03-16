@@ -61,6 +61,7 @@ object DeviceController {
             } catch (e: Exception) {
                 Log.e(TAG, "PowerManager fallback failed", e)
             }
+            Unit
         }
     }
 
@@ -74,9 +75,9 @@ object DeviceController {
                 // Try sending CEC standby command via the cec-client or HDMI CEC framework
                 // On Fire TV, going to sleep automatically sends CEC standby
                 // But we can also try the direct approach
-                val commands = arrayOf(
+                val commands = listOf(
                     arrayOf("cmd", "hdmi_control", "cec_setting", "set", "hdmi_cec_enabled", "1"),
-                    arrayOf("cmd", "hdmi_control", "one_touch_play"),
+                    arrayOf("cmd", "hdmi_control", "one_touch_play")
                 )
                 for (cmd in commands) {
                     try {
