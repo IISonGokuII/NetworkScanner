@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    namespace = "com.mycompany.networkscanner"
+    namespace = "com.sleeptimer.firetv"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.mycompany.networkscanner"
-        minSdk = 29
+        applicationId = "com.sleeptimer.firetv"
+        minSdk = 25
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -17,7 +17,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -35,21 +35,38 @@ android {
     }
 
     buildFeatures {
-        viewBinding = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.8"
     }
 }
 
 dependencies {
+    // Core
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.6")
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.6")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-    implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
+    // Compose for TV
+    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation(platform("androidx.compose:compose-bom:2024.01.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    implementation("androidx.tv:tv-foundation:1.0.0-alpha10")
+    implementation("androidx.tv:tv-material:1.0.0-alpha10")
+
+    // Lifecycle
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-service:2.7.0")
+
+    // Leanback (Fire TV)
+    implementation("androidx.leanback:leanback:1.0.0")
+
+    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 }

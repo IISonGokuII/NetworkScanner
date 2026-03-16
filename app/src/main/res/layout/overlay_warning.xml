@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#CC1A1A2E"
+    android:padding="24dp"
+    android:gravity="center">
+
+    <!-- Warning Icon (moon) -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sleep Timer"
+        android:textSize="20sp"
+        android:textColor="#FFD29922"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Timer countdown text -->
+    <TextView
+        android:id="@+id/overlay_timer_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sleep Timer in 05:00"
+        android:textSize="28sp"
+        android:textColor="#FFF0F6FC"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fire TV und TV werden ausgeschaltet"
+        android:textSize="14sp"
+        android:textColor="#FF8B949E"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Action buttons -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btn_extend"
+            android:layout_width="200dp"
+            android:layout_height="56dp"
+            android:text="+15 Min verlaengern"
+            android:textSize="16sp"
+            android:textColor="#FFFFFFFF"
+            android:backgroundTint="#FF1F6FEB"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusRight="@+id/btn_dismiss" />
+
+        <View
+            android:layout_width="16dp"
+            android:layout_height="0dp" />
+
+        <Button
+            android:id="@+id/btn_dismiss"
+            android:layout_width="160dp"
+            android:layout_height="56dp"
+            android:text="OK, ausschalten"
+            android:textSize="16sp"
+            android:textColor="#FF8B949E"
+            android:backgroundTint="#FF21262D"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btn_extend" />
+
+    </LinearLayout>
+
+</LinearLayout>

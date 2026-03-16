@@ -11,5 +11,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "NetworkScanner"
+rootProject.name = "FireTVSleepTimer"
 include(":app")

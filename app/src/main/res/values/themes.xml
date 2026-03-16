@@ -1,26 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.NetworkScanner" parent="Theme.Material3.Light.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryDark">@color/primary_dark</item>
-        <item name="colorSecondary">@color/secondary</item>
-        <item name="colorOnPrimary">@color/on_primary</item>
-        <item name="colorOnSecondary">@color/on_secondary</item>
-        <item name="android:statusBarColor">@color/primary_dark</item>
-        <item name="android:navigationBarColor">@color/primary_dark</item>
-    </style>
-
-    <style name="ToolCardStyle" parent="Widget.Material3.CardView.Filled">
-        <item name="cardCornerRadius">16dp</item>
-        <item name="cardElevation">4dp</item>
-    </style>
-
-    <style name="ResultCardStyle" parent="Widget.Material3.CardView.Outlined">
-        <item name="cardCornerRadius">12dp</item>
-        <item name="cardElevation">2dp</item>
-    </style>
-
-    <style name="ScanButton" parent="Widget.Material3.Button">
-        <item name="cornerRadius">12dp</item>
+    <style name="Theme.SleepTimer" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowBackground">@color/dark_background</item>
+        <item name="android:colorPrimary">@color/accent_blue</item>
+        <item name="android:colorAccent">@color/accent_blue</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
     </style>
 </resources>

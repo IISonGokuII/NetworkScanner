@@ -1,34 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NetScanner Pro</string>
-    <string name="nav_header_title">NetScanner Pro</string>
-    <string name="nav_header_subtitle">Netzwerk-Analyse Tool</string>
-    <string name="home">Home</string>
-    <string name="device_info">Geräte-Info</string>
-    <string name="wifi_scanner">WLAN Scanner</string>
-    <string name="port_scanner">Port Scanner</string>
-    <string name="ping_tool">Ping</string>
-    <string name="traceroute">Traceroute</string>
-    <string name="dns_lookup">DNS Lookup</string>
-    <string name="subnet_scanner">Subnetz Scanner</string>
-    <string name="wol">Wake on LAN</string>
-    <string name="speed_test">Speed Test</string>
-    <string name="http_headers">HTTP Headers</string>
-    <string name="whois_lookup">Whois Lookup</string>
-    <string name="connection_monitor">Verbindungs-Monitor</string>
-    <string name="start">Starten</string>
-    <string name="stop">Stoppen</string>
-    <string name="clear">Leeren</string>
-    <string name="scanning">Scanne…</string>
-    <string name="enter_host">Hostname oder IP eingeben</string>
-    <string name="enter_ip">IP-Adresse eingeben</string>
-    <string name="enter_url">URL eingeben</string>
-    <string name="enter_mac">MAC-Adresse eingeben</string>
-    <string name="port_range">Port-Bereich (z.B. 1-1024)</string>
-    <string name="results">Ergebnisse</string>
-    <string name="no_results">Keine Ergebnisse</string>
-    <string name="error_occurred">Fehler aufgetreten</string>
-    <string name="permission_required">Berechtigung erforderlich</string>
-    <string name="open_drawer">Navigation öffnen</string>
-    <string name="close_drawer">Navigation schließen</string>
+    <string name="app_name">Sleep Timer</string>
 </resources>
