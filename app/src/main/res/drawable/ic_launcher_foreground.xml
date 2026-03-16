@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Moon crescent -->
+    <path
+        android:fillColor="#FFF5E6A3"
+        android:pathData="M54,28 C42,28 32,38 32,50 C32,62 42,72 54,72 C48,68 44,59 44,50 C44,41 48,32 54,28Z" />
+
+    <!-- Stars -->
+    <path
+        android:fillColor="#FFFFF0C0"
+        android:pathData="M68,32 L69.5,35 L73,35.5 L70.5,38 L71,41.5 L68,40 L65,41.5 L65.5,38 L63,35.5 L66.5,35Z" />
+    <path
+        android:fillColor="#FFFFF0C0"
+        android:pathData="M76,45 L77,47 L79,47.3 L77.5,49 L78,51 L76,50 L74,51 L74.5,49 L73,47.3 L75,47Z" />
+    <path
+        android:fillColor="#FFFFF0C0"
+        android:pathData="M62,24 L62.7,25.5 L64.5,25.7 L63.2,27 L63.5,28.5 L62,27.8 L60.5,28.5 L60.8,27 L59.5,25.7 L61.3,25.5Z" />
+
+    <!-- Z letters (sleeping) -->
+    <path
+        android:fillColor="#FF9B8EC4"
+        android:pathData="M66,55 L72,55 L66,61 L72,61"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FF9B8EC4" />
+    <path
+        android:fillColor="#FF9B8EC4"
+        android:pathData="M73,50 L77,50 L73,54 L77,54"
+        android:strokeWidth="1.2"
+        android:strokeColor="#FF9B8EC4" />
+</vector>

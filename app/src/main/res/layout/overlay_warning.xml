@@ -3,27 +3,27 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#CC1A1A2E"
-    android:padding="24dp"
+    android:background="#E61A1A2E"
+    android:padding="28dp"
     android:gravity="center">
 
-    <!-- Warning Icon (moon) -->
+    <!-- Title -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sleep Timer"
-        android:textSize="20sp"
+        android:text="Djoudinis Sleeptimer"
+        android:textSize="22sp"
         android:textColor="#FFD29922"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="12dp" />
 
     <!-- Timer countdown text -->
     <TextView
         android:id="@+id/overlay_timer_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sleep Timer in 05:00"
-        android:textSize="28sp"
+        android:text="Noch 05:00 verbleibend"
+        android:textSize="32sp"
         android:textColor="#FFF0F6FC"
         android:textStyle="bold"
         android:layout_marginBottom="4dp" />
@@ -31,46 +31,110 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Fire TV und TV werden ausgeschaltet"
-        android:textSize="14sp"
+        android:text="Fire TV und TV werden gleich ausgeschaltet"
+        android:textSize="15sp"
         android:textColor="#FF8B949E"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="8dp" />
 
-    <!-- Action buttons -->
+    <!-- Divider -->
+    <View
+        android:layout_width="200dp"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Extend label -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Verlaengern um:"
+        android:textSize="16sp"
+        android:textColor="#FFB0B8C1"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Extend buttons row -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center">
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
 
         <Button
-            android:id="@+id/btn_extend"
-            android:layout_width="200dp"
-            android:layout_height="56dp"
-            android:text="+15 Min verlaengern"
-            android:textSize="16sp"
+            android:id="@+id/btn_extend_5"
+            android:layout_width="120dp"
+            android:layout_height="52dp"
+            android:text="+5 Min"
+            android:textSize="15sp"
+            android:textColor="#FFFFFFFF"
+            android:backgroundTint="#FF2D333B"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusRight="@+id/btn_extend_15" />
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="0dp" />
+
+        <Button
+            android:id="@+id/btn_extend_15"
+            android:layout_width="120dp"
+            android:layout_height="52dp"
+            android:text="+15 Min"
+            android:textSize="15sp"
             android:textColor="#FFFFFFFF"
             android:backgroundTint="#FF1F6FEB"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:nextFocusRight="@+id/btn_dismiss" />
+            android:nextFocusLeft="@+id/btn_extend_5"
+            android:nextFocusRight="@+id/btn_extend_30" />
 
         <View
-            android:layout_width="16dp"
+            android:layout_width="10dp"
             android:layout_height="0dp" />
 
         <Button
-            android:id="@+id/btn_dismiss"
-            android:layout_width="160dp"
-            android:layout_height="56dp"
-            android:text="OK, ausschalten"
-            android:textSize="16sp"
-            android:textColor="#FF8B949E"
-            android:backgroundTint="#FF21262D"
+            android:id="@+id/btn_extend_30"
+            android:layout_width="120dp"
+            android:layout_height="52dp"
+            android:text="+30 Min"
+            android:textSize="15sp"
+            android:textColor="#FFFFFFFF"
+            android:backgroundTint="#FF2D333B"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:nextFocusLeft="@+id/btn_extend" />
+            android:nextFocusLeft="@+id/btn_extend_15"
+            android:nextFocusRight="@+id/btn_extend_60" />
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="0dp" />
+
+        <Button
+            android:id="@+id/btn_extend_60"
+            android:layout_width="120dp"
+            android:layout_height="52dp"
+            android:text="+60 Min"
+            android:textSize="15sp"
+            android:textColor="#FFFFFFFF"
+            android:backgroundTint="#FF2D333B"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btn_extend_30" />
 
     </LinearLayout>
+
+    <!-- Dismiss button -->
+    <Button
+        android:id="@+id/btn_dismiss"
+        android:layout_width="200dp"
+        android:layout_height="48dp"
+        android:text="Nicht verlaengern"
+        android:textSize="14sp"
+        android:textColor="#FF8B949E"
+        android:backgroundTint="#FF21262D"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusUp="@+id/btn_extend_15" />
 
 </LinearLayout>

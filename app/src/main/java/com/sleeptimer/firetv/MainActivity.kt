@@ -80,8 +80,8 @@ class MainActivity : ComponentActivity() {
                     onStopTimer = {
                         SleepTimerService.stop(this)
                     },
-                    onExtendTimer = {
-                        SleepTimerService.extend(this)
+                    onExtendTimer = { minutes ->
+                        SleepTimerService.extend(this, minutes)
                     }
                 )
             }
@@ -104,7 +104,7 @@ fun SleepTimerApp(
     timerState: TimerState,
     onStartTimer: (TimerPreset) -> Unit,
     onStopTimer: () -> Unit,
-    onExtendTimer: () -> Unit
+    onExtendTimer: (Int) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -139,7 +139,7 @@ fun TimerSelectionScreen(onStartTimer: (TimerPreset) -> Unit) {
     ) {
         // Title
         Text(
-            text = "Sleep Timer",
+            text = "Djoudinis Sleeptimer",
             fontSize = 42.sp,
             fontWeight = FontWeight.Light,
             color = TextPrimary,
@@ -227,7 +227,7 @@ fun TimerPresetButton(preset: TimerPreset, onClick: () -> Unit) {
 fun TimerRunningScreen(
     timerState: TimerState,
     onStop: () -> Unit,
-    onExtend: () -> Unit
+    onExtend: (Int) -> Unit
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = timerState.progress,
@@ -299,56 +299,84 @@ fun TimerRunningScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
-        // Action buttons
+        // Extend buttons row
+        Text(
+            text = "Verlaengern um:",
+            fontSize = 14.sp,
+            color = TextSecondary,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
         Row(
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Extend button
-            var extendFocused by remember { mutableStateOf(false) }
-            OutlinedButton(
-                onClick = onExtend,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (extendFocused) AccentBlue else Color.Transparent,
-                    contentColor = if (extendFocused) Color.White else AccentBlue
-                ),
-                border = BorderStroke(2.dp, if (extendFocused) AccentBlue else AccentBlue.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .height(56.dp)
-                    .width(180.dp)
-                    .onFocusChanged { extendFocused = it.isFocused }
-                    .focusable()
-            ) {
-                Text(
-                    text = "+15 Minuten",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            // Stop button
-            var stopFocused by remember { mutableStateOf(false) }
-            Button(
-                onClick = onStop,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (stopFocused) AccentRed else AccentRed.copy(alpha = 0.2f),
-                    contentColor = if (stopFocused) Color.White else AccentRed
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .height(56.dp)
-                    .width(180.dp)
-                    .onFocusChanged { stopFocused = it.isFocused }
-                    .focusable()
-            ) {
-                Text(
-                    text = "Timer Stoppen",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
+            val extendOptions = listOf(5, 15, 30, 60)
+            for (minutes in extendOptions) {
+                ExtendButton(
+                    minutes = minutes,
+                    isHighlighted = minutes == 15,
+                    onClick = { onExtend(minutes) }
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Stop button
+        var stopFocused by remember { mutableStateOf(false) }
+        Button(
+            onClick = onStop,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (stopFocused) AccentRed else AccentRed.copy(alpha = 0.2f),
+                contentColor = if (stopFocused) Color.White else AccentRed
+            ),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .height(52.dp)
+                .width(200.dp)
+                .onFocusChanged { stopFocused = it.isFocused }
+                .focusable()
+        ) {
+            Text(
+                text = "Timer Stoppen",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun ExtendButton(minutes: Int, isHighlighted: Boolean, onClick: () -> Unit) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val label = if (minutes >= 60) "+${minutes / 60} Std" else "+${minutes} Min"
+    val defaultBg = if (isHighlighted) AccentBlue.copy(alpha = 0.3f) else DarkCard
+    val defaultBorder = if (isHighlighted) AccentBlue else TextMuted
+
+    OutlinedButton(
+        onClick = onClick,
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (isFocused) AccentBlue else defaultBg,
+            contentColor = if (isFocused) Color.White else TextPrimary
+        ),
+        border = BorderStroke(
+            2.dp,
+            if (isFocused) AccentBlue else defaultBorder
+        ),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .height(52.dp)
+            .width(120.dp)
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+    ) {
+        Text(
+            text = label,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

@@ -42,6 +42,7 @@ class SleepTimerService : Service() {
         const val ACTION_STOP = "com.sleeptimer.firetv.ACTION_STOP"
         const val ACTION_EXTEND = "com.sleeptimer.firetv.ACTION_EXTEND"
         const val EXTRA_DURATION_SECONDS = "duration_seconds"
+        const val EXTRA_EXTEND_MINUTES = "extend_minutes"
 
         private val _timerState = MutableStateFlow(TimerState())
         val timerState: StateFlow<TimerState> = _timerState.asStateFlow()
@@ -65,9 +66,10 @@ class SleepTimerService : Service() {
             context.startService(intent)
         }
 
-        fun extend(context: Context) {
+        fun extend(context: Context, minutes: Int = EXTEND_MINUTES) {
             val intent = Intent(context, SleepTimerService::class.java).apply {
                 action = ACTION_EXTEND
+                putExtra(EXTRA_EXTEND_MINUTES, minutes)
             }
             context.startService(intent)
         }
@@ -105,7 +107,8 @@ class SleepTimerService : Service() {
                 stopSelf()
             }
             ACTION_EXTEND -> {
-                extendTimer()
+                val minutes = intent.getIntExtra(EXTRA_EXTEND_MINUTES, EXTEND_MINUTES)
+                extendTimer(minutes)
             }
         }
         return START_STICKY
@@ -163,15 +166,15 @@ class SleepTimerService : Service() {
         stopForeground(STOP_FOREGROUND_REMOVE)
     }
 
-    private fun extendTimer() {
+    private fun extendTimer(minutes: Int = EXTEND_MINUTES) {
         val current = _timerState.value
         if (!current.isRunning) return
 
         overlayShown = false
         hideWarningOverlay()
 
-        val newRemaining = current.remainingSeconds + (EXTEND_MINUTES * 60)
-        val newTotal = current.totalSeconds + (EXTEND_MINUTES * 60)
+        val newRemaining = current.remainingSeconds + (minutes * 60L)
+        val newTotal = current.totalSeconds + (minutes * 60L)
 
         countdownJob?.cancel()
         startTimer(newRemaining)

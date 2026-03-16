@@ -24,11 +24,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Shows a warning overlay during the last 5 minutes of the timer.
- * The overlay floats on top of all other apps and allows the user
- * to extend the timer or let it expire.
- */
 class OverlayService : Service() {
 
     companion object {
@@ -70,50 +65,46 @@ class OverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            y = 80
+            y = 60
         }
 
         overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_warning, null)
 
         overlayView?.let { view ->
             val timerText = view.findViewById<TextView>(R.id.overlay_timer_text)
-            val extendBtn = view.findViewById<Button>(R.id.btn_extend)
-            val dismissBtn = view.findViewById<Button>(R.id.btn_dismiss)
+            val btnExtend5 = view.findViewById<Button>(R.id.btn_extend_5)
+            val btnExtend15 = view.findViewById<Button>(R.id.btn_extend_15)
+            val btnExtend30 = view.findViewById<Button>(R.id.btn_extend_30)
+            val btnExtend60 = view.findViewById<Button>(R.id.btn_extend_60)
+            val btnDismiss = view.findViewById<Button>(R.id.btn_dismiss)
 
-            extendBtn.setOnClickListener {
-                SleepTimerService.extend(this)
+            // Wire up extend buttons with different durations
+            btnExtend5.setOnClickListener {
+                SleepTimerService.extend(this, 5)
+                hideOverlay()
+            }
+            btnExtend15.setOnClickListener {
+                SleepTimerService.extend(this, 15)
+                hideOverlay()
+            }
+            btnExtend30.setOnClickListener {
+                SleepTimerService.extend(this, 30)
+                hideOverlay()
+            }
+            btnExtend60.setOnClickListener {
+                SleepTimerService.extend(this, 60)
+                hideOverlay()
+            }
+            btnDismiss.setOnClickListener {
                 hideOverlay()
             }
 
-            dismissBtn.setOnClickListener {
-                hideOverlay()
-            }
-
-            // Handle D-pad navigation - ensure buttons are focusable
-            extendBtn.isFocusable = true
-            dismissBtn.isFocusable = true
-            extendBtn.requestFocus()
-
-            // Allow D-pad to interact with the overlay
-            view.setOnKeyListener { _, keyCode, event ->
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    when (keyCode) {
-                        KeyEvent.KEYCODE_DPAD_LEFT -> {
-                            extendBtn.requestFocus()
-                            true
-                        }
-                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                            dismissBtn.requestFocus()
-                            true
-                        }
-                        else -> false
-                    }
-                } else false
-            }
+            // Focus on +15 Min by default (most common choice)
+            btnExtend15.requestFocus()
 
             try {
                 windowManager?.addView(view, layoutParams)
-                Log.d(TAG, "Overlay shown")
+                Log.d(TAG, "Overlay shown with extend options: 5/15/30/60 min")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to show overlay", e)
                 overlayView = null
@@ -126,7 +117,7 @@ class OverlayService : Service() {
                 val state = SleepTimerService.timerState.value
                 overlayView?.let { view ->
                     val timerText = view.findViewById<TextView>(R.id.overlay_timer_text)
-                    timerText?.text = "Sleep Timer in ${state.formattedTime}"
+                    timerText?.text = "Noch ${state.formattedTime} verbleibend"
                 }
                 delay(1000)
             }

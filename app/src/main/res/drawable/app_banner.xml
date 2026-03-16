@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dark blue background matching the logo -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FF0D1117" />
+            <solid android:color="#FF1A1A3E" />
             <corners android:radius="8dp" />
         </shape>
     </item>
-    <item android:gravity="center">
+    <!-- Moon shape -->
+    <item
+        android:gravity="center"
+        android:width="60dp"
+        android:height="60dp"
+        android:left="20dp">
         <shape android:shape="oval">
-            <solid android:color="#FF1F6FEB" />
-            <size android:width="80dp" android:height="80dp" />
+            <solid android:color="#FFF5E6A3" />
         </shape>
     </item>
 </layer-list>
