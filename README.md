@@ -1,4 +1,4 @@
-# Fire TV Sleep Timer
+# Djoudinis Sleeptimer
 
 Sleep Timer App fuer Amazon Fire TV Stick. Schaltet Fire TV **und** den Fernseher (via HDMI-CEC) nach einer einstellbaren Zeit automatisch aus.
 
