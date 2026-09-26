@@ -19,17 +19,35 @@ Fernbedienung.
 Die APK wird von GitHub Actions (`.github/workflows/joyntv.yml`) automatisch
 gebaut und im Release `joyntv-latest` veröffentlicht.
 
-## Bedienung
+## Bedienung mit der Fernbedienung
+
+Die App bedient sich wie eine normale TV-App: Das Steuerkreuz springt von
+Kachel zu Kachel bzw. Menüpunkt zu Menüpunkt, das gewählte Element hat einen
+weißen Rahmen.
 
 | Taste | Funktion |
 |---|---|
-| Steuerkreuz | Mauszeiger bewegen (am Bildrand wird gescrollt) |
-| OK | Klicken |
-| Zurück | Vorherige Seite / Vollbild verlassen (2× auf Startseite = Beenden) |
-| Menü (≡) | Startseite, Neu laden, Hilfe, Beenden |
-| Play/Pause | Video starten/pausieren |
-| ⏪ / ⏩ | ±30 s im Video, sonst Seite scrollen |
-| Im Video-Vollbild: ◀ / ▶ | ±10 s |
+| Steuerkreuz | Zwischen Kacheln, Buttons und Menüpunkten springen (Reihen scrollen mit) |
+| OK | Auswählen / Öffnen |
+| Zurück | Vorherige Seite (2× auf der Startseite = Beenden) |
+| Menü (≡) | Schnellmenü: Startseite, Suche, Live-TV, Serien, Filme, Neu laden, Mauszeiger, Beenden |
+| ⏪ / ⏩ | Außerhalb eines Videos: Seite nach oben / unten |
+| OK **lange drücken** | Mauszeiger ein/aus – Notlösung für Stellen, die sich per Steuerkreuz nicht erreichen lassen |
+
+**Beim Video** (erkannt, sobald ein Video den Großteil des Bildes füllt):
+
+| Taste | Funktion |
+|---|---|
+| OK oder Play/Pause | Pause / weiter |
+| ◀ / ▶ | 10 s zurück / vor (gedrückt halten = schneller, bis 60 s) |
+| ⏪ / ⏩ | 30 s zurück / vor |
+| ▲ / ▼ | Player-Knöpfe (Untertitel, Folgen, Vollbild …) auswählen |
+| Zurück | Von den Player-Knöpfen zurück zum Video bzw. Vollbild verlassen |
+
+Beim Spulen und Pausieren erscheint unten eine Zeitleiste.
+
+**Suche:** Menü → Suche, der Fokus liegt direkt im Suchfeld – OK drücken,
+dann erscheint die Fire-TV-Tastatur.
 
 ## Hinweise
 

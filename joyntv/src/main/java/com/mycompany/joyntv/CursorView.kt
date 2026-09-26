@@ -47,6 +47,13 @@ class CursorView(context: Context) : View(context) {
         }
     }
 
+    fun moveTo(x: Float, y: Float) {
+        cursorX = x
+        cursorY = y
+        clamp()
+        invalidate()
+    }
+
     /** Moves the pointer and returns the part of the move blocked by the screen edge. */
     fun moveBy(dx: Float, dy: Float): Pair<Float, Float> {
         val wantX = cursorX + dx
