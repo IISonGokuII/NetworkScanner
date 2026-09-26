@@ -13,3 +13,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "NetworkScanner"
 include(":app")
+include(":joyntv")

@@ -49,3 +49,7 @@ app/src/main/res/menu/         — Navigation
 - ACCESS_WIFI_STATE — WLAN-Informationen
 - CHANGE_WIFI_STATE — WLAN-Scan
 - ACCESS_FINE_LOCATION — WLAN-Scan (Android 10+)
+
+## Weitere App: Joyn Österreich für Fire TV
+Im Modul `joyntv/` liegt eine Fire-TV-App, die www.joyn.at öffnet –
+Anleitung siehe [joyntv/README.md](joyntv/README.md).
