@@ -12,8 +12,9 @@ Fernbedienung.
    *Entwickleroptionen nicht sichtbar?* Einstellungen → Mein Fire TV → Info →
    7× auf den Gerätenamen klicken.
 2. Aus dem Amazon Appstore die App **Downloader** installieren.
-3. In Downloader diese Adresse eingeben:
-   `https://github.com/IISonGokuII/NetworkScanner/releases/download/joyntv-latest/JoynAT-FireTV.apk`
+3. In Downloader diesen Kurzlink eingeben: **`tinyurl.com/joynat-firetv`**
+   (leitet weiter auf
+   `https://github.com/IISonGokuII/NetworkScanner/releases/download/joyntv-latest/JoynAT-FireTV.apk`)
 4. Installieren → die App erscheint als **„Joyn Österreich“** unter „Deine Apps“.
 
 Die APK wird von GitHub Actions (`.github/workflows/joyntv.yml`) automatisch
