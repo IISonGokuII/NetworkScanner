@@ -1,0 +1,1069 @@
+<title>Wahlschied seit 1331</title>
+<meta name="description" content="Ein kleiner Animationsfilm über Wahlschied am Wahlbach (66265 Heusweiler, Saarland)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;800&family=Alegreya:ital,wght@0,400;0,600;1,400&family=Karla:wght@400;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --stage: #121613;
+    --panel: #1b211d;
+    --line: #2f3a33;
+    --ink: #eee5d0;
+    --muted: #a7ab9c;
+    --gold: #d9a441;
+    --green: #4f7a52;
+    --display: "Alegreya SC", "Palatino Linotype", Georgia, serif;
+    --serif: "Alegreya", "Palatino Linotype", Georgia, serif;
+    --sans: "Karla", "Segoe UI", system-ui, sans-serif;
+  }
+  [hidden] { display: none !important; }
+  html, body { background: var(--stage); color: var(--ink); }
+  body { font-family: var(--sans); padding-inline: 16px; padding-block: 20px 40px; }
+  .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+  header h1 { font-family: var(--display); font-weight: 800; font-size: clamp(22px, 4vw, 32px); letter-spacing: .04em; margin: 0; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+  .screen { position: relative; background: #000; border-radius: 6px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+  canvas { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; }
+  .bigplay {
+    position: absolute; inset: 0; margin: auto; width: 84px; height: 84px; border-radius: 50%;
+    border: 2px solid rgba(238,229,208,.85); background: rgba(18,22,19,.55); color: var(--ink);
+    cursor: pointer; display: grid; place-items: center; backdrop-filter: blur(3px);
+  }
+  .bigplay:hover { background: rgba(217,164,65,.35); }
+  .bigplay svg { width: 30px; height: 30px; margin-left: 5px; }
+  .sub {
+    min-height: 3.4em; font-family: var(--serif); font-size: clamp(16px, 2.2vw, 21px); line-height: 1.45;
+    text-align: center; text-wrap: balance; max-width: 62ch; margin: 0 auto; color: var(--ink);
+  }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .controls button, .chapters button {
+    font: 600 13px var(--sans); color: var(--ink); background: transparent; border: 1px solid var(--line);
+    border-radius: 4px; padding: 7px 12px; cursor: pointer;
+  }
+  .controls button:hover, .chapters button:hover { border-color: var(--gold); }
+  .controls button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  #play { background: var(--gold); color: #1b1407; border-color: var(--gold); min-width: 92px; }
+  #seek { flex: 1 1 200px; accent-color: var(--gold); min-width: 0; }
+  #clock { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  .chapters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chapters button { display: grid; gap: 1px; text-align: left; font-weight: 400; padding: 6px 10px; }
+  .chapters button b { font-family: var(--display); font-weight: 500; font-size: 15px; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .chapters button[aria-current="true"] { border-color: var(--gold); background: rgba(217,164,65,.12); }
+  footer { color: var(--muted); font-size: 12.5px; line-height: 1.6; border-top: 1px solid var(--line); padding-top: 12px; }
+  footer a { color: var(--ink); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Wahlschied</h1>
+    <p>Am Wahlbach · 66265 Heusweiler · Saarland</p>
+  </header>
+
+  <div class="screen">
+    <canvas id="film" width="1280" height="720" aria-label="Animationsfilm über Wahlschied"></canvas>
+    <button class="bigplay" id="bigplay" aria-label="Film abspielen">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 3l16 9-16 9z"/></svg>
+    </button>
+  </div>
+
+  <p class="sub" id="sub" aria-live="polite">Nördlich von Saarbrücken, auf 359 Metern Höhe, liegt am Wahlbach ein kleines Dorf: Wahlschied.</p>
+
+  <div class="controls">
+    <button id="play">▶ Abspielen</button>
+    <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Zeitleiste">
+    <span id="clock">0:00 / 0:00</span>
+    <button id="voice" aria-pressed="true" title="Deutsche Sprachausgabe des Browsers">Sprecher</button>
+    <button id="music" aria-pressed="true">Musik</button>
+  </div>
+
+  <nav class="chapters" id="chapters" aria-label="Kapitel"></nav>
+
+  <footer>
+    Fakten: <a href="https://de.wikipedia.org/wiki/Wahlschied" target="_blank" rel="noopener">Wikipedia – Wahlschied</a>,
+    <a href="https://www.heusweiler.de/rathaus-service/verwaltung/zahlen-daten-fakten/" target="_blank" rel="noopener">Gemeinde Heusweiler</a>.
+    Lage der Orte nach OpenStreetMap-Koordinaten. Die Bilder sind frei gezeichnete Illustrationen, keine originalgetreuen Abbildungen; das Wappen ist vereinfacht dargestellt.
+  </footer>
+</div>
+
+<script>
+(() => {
+  const W = 1280, H = 720;
+  const cv = document.getElementById('film');
+  const ctx = cv.getContext('2d');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- helpers ----------
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+  const ease = t => (t = clamp(t), t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+  const seg = (p, a, b) => clamp((p - a) / (b - a));
+  const hexRgb = c => [1, 3, 5].map(i => parseInt(c.substr(i, 2), 16));
+  const mix = (a, b, t) => '#' + hexRgb(a).map((v, i) => Math.round(v + (hexRgb(b)[i] - v) * clamp(t)).toString(16).padStart(2, '0')).join('');
+  function rng(seed) {
+    return () => {
+      seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const NIGHT = '#0a1120';
+
+  // terrain: the Saar-Nahe uplands as layered sine hills
+  const hy = (x, base, amp, s) => base - amp * (.5 * Math.sin(x * .0021 + s) + .3 * Math.sin(x * .0053 + s * 2.1) + .2 * Math.sin(x * .011 + s * 3.7));
+
+  function hill(L, cam, col) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W + 8; x += 8) ctx.lineTo(x, hy(x + cam, L.base, L.amp, L.s));
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function tree(x, y, s, col, conifer) {
+    ctx.fillStyle = col;
+    if (conifer) {
+      ctx.beginPath();
+      ctx.moveTo(x, y - s * 2.4);
+      ctx.lineTo(x + s * .75, y);
+      ctx.lineTo(x - s * .75, y);
+      ctx.fill();
+    } else {
+      ctx.fillRect(x - s * .1, y - s * .9, s * .2, s * .9);
+      ctx.beginPath();
+      ctx.arc(x, y - s * 1.3, s * .75, 0, 7);
+      ctx.arc(x - s * .45, y - s * 1, s * .5, 0, 7);
+      ctx.arc(x + s * .45, y - s * 1, s * .5, 0, 7);
+      ctx.fill();
+    }
+  }
+
+  function forest(L, cam, col, step, size, seed, skip) {
+    const start = Math.floor((cam - 40) / step) * step;
+    for (let wx = start; wx < cam + W + 40; wx += step) {
+      const r = rng(seed * 7919 + wx);
+      if (r() < .3) continue;
+      const x = wx + r() * step;
+      if (skip && x > skip[0] && x < skip[1]) continue;
+      tree(x - cam, hy(x, L.base, L.amp, L.s) + 3, size * (.7 + r() * .6), col, r() < .55);
+    }
+  }
+
+  function house(x, y, w, h, wall, roof, lit, night) {
+    ctx.fillStyle = mix(wall, NIGHT, night * .7);
+    ctx.fillRect(x - w / 2, y - h, w, h + 6);
+    ctx.fillStyle = mix(roof, NIGHT, night * .7);
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2 - 4, y - h);
+    ctx.lineTo(x - w * .1, y - h - h * .75);
+    ctx.lineTo(x + w * .1, y - h - h * .75);
+    ctx.lineTo(x + w / 2 + 4, y - h);
+    ctx.fill();
+    ctx.fillStyle = lit ? '#ffd57e' : mix('#3a3a36', NIGHT, night * .5);
+    const ww = Math.max(3, w * .14), wh = Math.max(4, h * .26);
+    ctx.fillRect(x - w * .28 - ww / 2, y - h * .62, ww, wh);
+    ctx.fillRect(x + w * .28 - ww / 2, y - h * .62, ww, wh);
+  }
+
+  // churches: old St. Willibrord, the Protestant church of 1901, the Catholic church of 1956
+  function church(x, y, s, type, night, lit, grow = 1) {
+    const wall = mix(type === 'kath' ? '#d9d4c7' : type === 'ev' ? '#c7b69a' : '#b8a482', NIGHT, night * .7);
+    const roof = mix(type === 'kath' ? '#4d5256' : '#6e3b2c', NIGHT, night * .7);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s, s);
+    if (grow < 1) {
+      ctx.beginPath();
+      ctx.rect(-80, -200 * grow, 200, 220);
+      ctx.clip();
+    }
+    // nave
+    ctx.fillStyle = wall;
+    ctx.fillRect(-10, -34, 70, 40);
+    ctx.fillStyle = roof;
+    ctx.beginPath();
+    if (type === 'kath') { ctx.moveTo(-14, -34); ctx.lineTo(64, -46); ctx.lineTo(64, -34); }
+    else { ctx.moveTo(-14, -34); ctx.lineTo(25, -60); ctx.lineTo(64, -34); }
+    ctx.fill();
+    ctx.fillStyle = lit ? '#ffcf73' : mix('#4a4540', NIGHT, night * .4);
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(6 + i * 18, -8); ctx.lineTo(6 + i * 18, -20);
+      ctx.arc(10 + i * 18, -20, 4, Math.PI, 0);
+      ctx.lineTo(14 + i * 18, -8);
+      ctx.fill();
+    }
+    // tower
+    ctx.fillStyle = wall;
+    if (type === 'alt') {
+      ctx.fillRect(-30, -64, 26, 70);
+      ctx.fillStyle = roof;
+      ctx.beginPath(); ctx.moveTo(-33, -64); ctx.lineTo(-17, -92); ctx.lineTo(-1, -64); ctx.fill();
+    } else if (type === 'ev') {
+      ctx.fillRect(-30, -90, 26, 96);
+      ctx.fillStyle = roof;
+      ctx.beginPath(); ctx.moveTo(-32, -90); ctx.lineTo(-17, -150); ctx.lineTo(-2, -90); ctx.fill();
+      ctx.fillStyle = mix('#e8c46a', NIGHT, night * .5);
+      ctx.fillRect(-18, -160, 2, 10);
+      ctx.fillRect(-21, -157, 8, 2);
+    } else {
+      ctx.fillRect(-34, -118, 18, 124);
+      ctx.fillStyle = roof;
+      ctx.fillRect(-36, -122, 22, 5);
+      ctx.fillStyle = mix('#e8c46a', NIGHT, night * .5);
+      ctx.fillRect(-26, -138, 2, 16);
+      ctx.fillRect(-30, -133, 10, 2);
+    }
+    ctx.fillStyle = mix('#2a2622', NIGHT, night * .5);
+    ctx.fillRect(type === 'kath' ? -28 : -20, type === 'kath' ? -106 : -78, 6, 9);
+    ctx.restore();
+  }
+
+  // ---------- the village layer ----------
+  const ERAS = {
+    alt:   { n: 6,  wall: ['#a78f6c', '#b39a75'], roof: ['#6a5638', '#5d4a31'], hs: .8 },
+    barock:{ n: 10, wall: ['#d6c7a6', '#cbb893'], roof: ['#7d3b2a', '#6d3527'], hs: .9 },
+    j1900: { n: 16, wall: ['#e0d4bc', '#cfc2a8', '#d9c9a4'], roof: ['#9a3f2b', '#823526'], hs: 1 },
+    heute: { n: 24, wall: ['#ece6d8', '#d8cbb0', '#e6dcc2', '#c9d0c6'], roof: ['#9a3f2b', '#5b4a45', '#a64c30', '#474b50'], hs: 1.05 }
+  };
+  const VL = { base: 560, amp: 34, s: 1.3 };
+
+  function village(cam, era, night, litAll, churches) {
+    const E = ERAS[era];
+    const r = rng(era.length * 31 + E.n);
+    const items = [];
+    for (let i = 0; i < E.n; i++) {
+      const wx = 260 + (i + .5) * (960 / E.n) + (r() - .5) * 30;
+      if (Math.abs(wx - 720) < 70) continue;
+      items.push({ wx, back: i % 2, w: (26 + r() * 14) * E.hs, h: (18 + r() * 8) * E.hs, wall: E.wall[i % E.wall.length], roof: E.roof[i % E.roof.length], lit: r() < .6 });
+    }
+    for (const it of items.filter(i => i.back)) {
+      const x = it.wx - cam;
+      house(x, hy(it.wx, VL.base, VL.amp, VL.s) - 8, it.w * .85, it.h * .85, it.wall, it.roof, litAll && it.lit, night + .05);
+    }
+    for (const c of churches || []) church(c.wx - cam, hy(c.wx, VL.base, VL.amp, VL.s) + 2, c.s || 1, c.type, night, litAll, c.grow);
+    for (const it of items.filter(i => !i.back)) {
+      const x = it.wx - cam;
+      house(x, hy(it.wx, VL.base, VL.amp, VL.s) + 4, it.w, it.h, it.wall, it.roof, litAll && it.lit, night);
+    }
+  }
+
+  // ---------- full landscape ----------
+  const LAYERS = [
+    { base: 395, amp: 46, s: .4, col: '#8497a3', tree: '#77899a', par: .3, step: 16, size: 7 },
+    { base: 470, amp: 44, s: 2.2, col: '#5f7c63', tree: '#4d6b51', par: .6, step: 20, size: 10 },
+  ];
+  const FORE = { base: 700, amp: 22, s: 4.1, col: '#253d2c', tree: '#1c3123' };
+
+  function sky(top, bot) {
+    const g = ctx.createLinearGradient(0, 0, 0, H * .8);
+    g.addColorStop(0, top);
+    g.addColorStop(1, bot);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function stars(a, T) {
+    if (a <= 0) return;
+    const r = rng(42);
+    for (let i = 0; i < 140; i++) {
+      const x = r() * W, y = r() * H * .5, tw = .6 + .4 * Math.sin(T * 2 + i);
+      ctx.fillStyle = `rgba(255,248,225,${a * tw * (.4 + r() * .6)})`;
+      ctx.fillRect(x, y, 1.6, 1.6);
+    }
+  }
+
+  function orb(x, y, r, col, glow) {
+    const g = ctx.createRadialGradient(x, y, r * .6, x, y, r * 4);
+    g.addColorStop(0, glow);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r * 4, y - r * 4, r * 8, r * 8);
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+
+  function landscape(o) {
+    const n = o.night || 0, cam = o.cam || 0;
+    sky(o.sky[0], o.sky[1]);
+    stars(n > .4 ? (n - .4) / .6 : 0, o.T);
+    if (o.sun) orb(o.sun[0], o.sun[1], o.sun[2], o.sun[3], o.sun[4]);
+    LAYERS.forEach((L, i) => {
+      const c = cam * L.par;
+      hill(L, c, mix(o.haze ? mix(L.col, o.haze, .35) : L.col, NIGHT, n * .8));
+      forest(L, c, mix(L.tree, NIGHT, n * .8), L.step, L.size, i + 1);
+      if (i === 1 && o.back) o.back(c, n);
+    });
+    hill(VL, cam, mix('#3f5f45', NIGHT, n * .8));
+    forest(VL, cam, mix('#2f4c35', NIGHT, n * .8), 26, 13, 9, [200 + 0, 1260]);
+    if (o.village) village(cam, o.village, n, o.lit, o.churches);
+    if (o.mid) o.mid(cam, n);
+    const fc = cam * 1.4;
+    hill(FORE, fc, mix(FORE.col, NIGHT, n * .8));
+    forest(FORE, fc, mix(FORE.tree, NIGHT, n * .8), 44, 20, 5);
+    if (o.front) o.front(fc, n);
+    if (o.fog) {
+      const g = ctx.createLinearGradient(0, 420, 0, 620);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(.5, `rgba(235,235,230,${o.fog})`);
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 420, W, 200);
+    }
+  }
+
+  // ---------- text on screen ----------
+  function yearStamp(label, a) {
+    if (!label) return;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(12,16,14,.55)';
+    ctx.font = '500 44px "Alegreya SC", Georgia, serif';
+    const w = ctx.measureText(label).width;
+    ctx.fillRect(36, 34, w + 36, 62);
+    ctx.fillStyle = '#d9a441';
+    ctx.fillRect(36, 34, 4, 62);
+    ctx.fillStyle = '#f2e9d4';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, 56, 67);
+    ctx.restore();
+  }
+
+  function centerText(txt, y, font, col, a, shadow = true) {
+    ctx.save();
+    ctx.globalAlpha = clamp(a);
+    ctx.font = font;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (shadow) { ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 18; }
+    ctx.fillStyle = col;
+    ctx.fillText(txt, W / 2, y);
+    ctx.restore();
+  }
+
+  function label(txt, x, y, a = 1, size = 20, col = '#f2e9d4') {
+    ctx.save();
+    ctx.globalAlpha = clamp(a);
+    ctx.font = `600 ${size}px Karla, system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    const w = ctx.measureText(txt).width;
+    ctx.fillStyle = 'rgba(12,16,14,.6)';
+    ctx.fillRect(x - w / 2 - 8, y - size - 2, w + 16, size + 12);
+    ctx.fillStyle = col;
+    ctx.fillText(txt, x, y);
+    ctx.restore();
+  }
+
+  // ---------- props ----------
+  function parchment(cx, cy, w, h, open) {
+    const ww = w * ease(open);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 20;
+    const g = ctx.createLinearGradient(cx - ww / 2, 0, cx + ww / 2, 0);
+    g.addColorStop(0, '#d8c08f'); g.addColorStop(.5, '#efe0b9'); g.addColorStop(1, '#d4b986');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - ww / 2, cy - h / 2, ww, h);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#b8955c';
+    for (const sx of [-1, 1]) {
+      const x = cx + sx * ww / 2;
+      ctx.fillRect(x - 9, cy - h / 2 - 8, 18, h + 16);
+      ctx.fillStyle = '#9c7a45';
+      ctx.fillRect(x - 3, cy - h / 2 - 8, 6, h + 16);
+      ctx.fillStyle = '#b8955c';
+    }
+    ctx.restore();
+  }
+
+  function banner(x, y, t, night) {
+    ctx.fillStyle = mix('#3b2d20', NIGHT, night * .5);
+    ctx.fillRect(x - 2, y - 120, 4, 120);
+    const wave = i => Math.sin(t * 3 + i * .8) * 4;
+    ctx.fillStyle = mix('#e9e2cf', NIGHT, night * .5);
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y - 118);
+    for (let i = 0; i <= 6; i++) ctx.lineTo(x + 2 + i * 10, y - 118 + wave(i));
+    for (let i = 6; i >= 0; i--) ctx.lineTo(x + 2 + i * 10, y - 74 + wave(i));
+    ctx.fill();
+    ctx.strokeStyle = mix('#a8322a', NIGHT, night * .5);
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(x + 6, y - 112 + wave(0)); ctx.lineTo(x + 58, y - 80 + wave(6));
+    ctx.moveTo(x + 58, y - 112 + wave(6)); ctx.lineTo(x + 6, y - 80 + wave(0));
+    ctx.stroke();
+  }
+
+  function flames(x, y, w, h, T, a) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 60; i++) {
+      const r = rng(i * 13);
+      const life = ((T * (0.6 + r() * .6) + r()) % 1);
+      const px = x + (r() - .5) * w + Math.sin(T * 5 + i) * 6;
+      const py = y - life * h;
+      const s = (1 - life) * (14 + r() * 16);
+      ctx.fillStyle = `rgba(255,${Math.round(120 + 100 * (1 - life))},40,${a * (1 - life) * .55})`;
+      ctx.beginPath(); ctx.arc(px, py, s, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function smoke(x, y, T, a, dark) {
+    for (let i = 0; i < 16; i++) {
+      const r = rng(i * 91);
+      const life = (T * .15 + r()) % 1;
+      ctx.fillStyle = dark ? `rgba(40,36,34,${a * (1 - life) * .5})` : `rgba(230,230,225,${a * (1 - life) * .35})`;
+      ctx.beginPath();
+      ctx.arc(x + life * 90 + Math.sin(T + i) * 10, y - life * 220, 12 + life * 40, 0, 7);
+      ctx.fill();
+    }
+  }
+
+  function miner(x, y, T, night) {
+    const step = Math.sin(T * 6 + x * .1);
+    ctx.fillStyle = '#1a1612';
+    ctx.fillRect(x - 6, y - 38, 12, 22);
+    ctx.fillRect(x - 5 + step * 2, y - 16, 4, 16);
+    ctx.fillRect(x + 1 - step * 2, y - 16, 4, 16);
+    ctx.beginPath(); ctx.arc(x, y - 44, 7, 0, 7); ctx.fill();
+    ctx.fillStyle = '#e8e2d2';
+    ctx.fillRect(x - 8, y - 52, 16, 5);
+    // hand lamp
+    const lx = x + 10, ly = y - 24;
+    orb(lx, ly, 3, '#ffe39a', 'rgba(255,200,90,.45)');
+    ctx.strokeStyle = '#1a1612'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x + 4, y - 32); ctx.lineTo(lx, ly - 3); ctx.stroke();
+  }
+
+  function bus(x, y, kind) {
+    ctx.save();
+    ctx.translate(x, y);
+    if (kind === 1927) {
+      ctx.fillStyle = '#2f4b6b'; ctx.fillRect(-60, -44, 100, 34);
+      ctx.fillStyle = '#23384f'; ctx.fillRect(40, -30, 26, 20);
+      ctx.fillStyle = '#e6dfcc'; ctx.fillRect(-60, -48, 100, 6);
+      ctx.fillStyle = '#cfe0ea';
+      for (let i = 0; i < 5; i++) ctx.fillRect(-54 + i * 19, -40, 14, 12);
+      ctx.fillStyle = '#111';
+      for (const wx of [-40, 48]) { ctx.beginPath(); ctx.arc(wx, -10, 10, 0, 7); ctx.fill(); }
+    } else {
+      ctx.fillStyle = '#c9a33e'; ctx.fillRect(-80, -52, 160, 44);
+      ctx.fillStyle = '#efe7cf'; ctx.fillRect(-80, -52, 160, 8);
+      ctx.fillStyle = '#cfe0ea';
+      for (let i = 0; i < 7; i++) ctx.fillRect(-72 + i * 21, -40, 16, 14);
+      ctx.fillStyle = '#111';
+      for (const wx of [-52, 52]) { ctx.beginPath(); ctx.arc(wx, -8, 10, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(-40, -52); ctx.lineTo(10, -96); ctx.moveTo(-30, -52); ctx.lineTo(20, -92); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function tower(x, y, T, night) {
+    ctx.strokeStyle = mix('#c8cdd1', NIGHT, night * .6);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y); ctx.lineTo(x - 2, y - 190); ctx.lineTo(x + 2, y - 190); ctx.lineTo(x + 10, y);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    for (let k = 1; k < 9; k++) {
+      const yy = y - k * 21, dx = 10 - k * .9;
+      ctx.beginPath(); ctx.moveTo(x - dx, yy); ctx.lineTo(x + dx, yy - 21); ctx.moveTo(x + dx, yy); ctx.lineTo(x - dx, yy - 21); ctx.stroke();
+    }
+    const on = Math.sin(T * 3) > 0;
+    for (const yy of [y - 192, y - 130, y - 70]) orb(x, yy, 3, on ? '#ff4a3a' : '#7a2a24', on ? 'rgba(255,60,40,.5)' : 'rgba(0,0,0,0)');
+  }
+
+  function oilMill(x, y, T, night) {
+    ctx.fillStyle = mix('#cdbb98', NIGHT, night * .7);
+    ctx.fillRect(x, y - 46, 70, 46);
+    ctx.fillStyle = mix('#7a3a29', NIGHT, night * .7);
+    ctx.beginPath(); ctx.moveTo(x - 6, y - 46); ctx.lineTo(x + 35, y - 80); ctx.lineTo(x + 76, y - 46); ctx.fill();
+    ctx.fillStyle = night > .3 ? '#ffd27a' : '#3d3a33';
+    ctx.fillRect(x + 12, y - 32, 10, 12); ctx.fillRect(x + 46, y - 32, 10, 12);
+    // water wheel
+    const cx = x - 20, cy = y - 22, R = 26;
+    ctx.strokeStyle = mix('#4a3622', NIGHT, night * .6); ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+    ctx.lineWidth = 3;
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4 + T * 1.2;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (R + 6), cy + Math.sin(a) * (R + 6)); ctx.stroke();
+    }
+  }
+
+  function stream(fc, night, T) {
+    // the Wahlbach winding through the foreground
+    ctx.save();
+    ctx.strokeStyle = mix('#6f9fb5', NIGHT, night * .7);
+    ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let x = -20; x <= W + 20; x += 10) {
+      const y = 694 + Math.sin((x + fc) * .012) * 10;
+      x === -20 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${.35 * (1 - night * .6)})`;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 22]);
+    ctx.lineDashOffset = -T * 30;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function signpost(x, y, a, T) {
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#4a3a28';
+    ctx.fillRect(x - 4, y - 190, 8, 190);
+    const signs = [['Göttelborn', 1, -178], ['Quierschied', 1, -146], ['Holz', -1, -114], ['Kutzhof', -1, -82], ['Lummerschied', 1, -50]];
+    ctx.font = '600 17px Karla, system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    signs.forEach(([t, d, dy], i) => {
+      const k = ease(seg(a * 1.4 - i * .08, 0, 1));
+      const w = ctx.measureText(t).width + 30;
+      ctx.fillStyle = '#f0e8d0';
+      ctx.beginPath();
+      const x0 = x + (d > 0 ? 4 : -4);
+      const x1 = x0 + d * w * k;
+      ctx.moveTo(x0, y + dy - 12); ctx.lineTo(x1, y + dy - 12); ctx.lineTo(x1 + d * 12 * k, y + dy); ctx.lineTo(x1, y + dy + 12); ctx.lineTo(x0, y + dy + 12);
+      ctx.fill();
+      ctx.fillStyle = '#1d2a22';
+      ctx.textAlign = d > 0 ? 'left' : 'right';
+      ctx.globalAlpha = a * k;
+      ctx.fillText(t, x0 + d * 10, y + dy + 1);
+      ctx.globalAlpha = a;
+    });
+    ctx.restore();
+  }
+
+  // stylised coat of arms: saltire of the Knights of Dagstuhl on green ("Wahl" = forest),
+  // Teutonic cross in chief. A simplified illustration, not the official blazon.
+  function arms(cx, cy, s, a) {
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(cx, cy); ctx.scale(s, s);
+    const shield = () => { ctx.beginPath(); ctx.moveTo(-60, -70); ctx.lineTo(60, -70); ctx.lineTo(60, 10); ctx.quadraticCurveTo(60, 60, 0, 80); ctx.quadraticCurveTo(-60, 60, -60, 10); ctx.closePath(); };
+    shield();
+    ctx.fillStyle = '#3f7a45'; ctx.fill();
+    ctx.save(); shield(); ctx.clip();
+    ctx.fillStyle = '#f1ead7'; ctx.fillRect(-60, -70, 120, 34);
+    ctx.fillStyle = '#1b1b1b'; ctx.fillRect(-4, -66, 8, 26); ctx.fillRect(-13, -57, 26, 8);
+    ctx.strokeStyle = '#e0b447'; ctx.lineWidth = 14;
+    ctx.beginPath(); ctx.moveTo(-60, -36); ctx.lineTo(60, 84); ctx.moveTo(60, -36); ctx.lineTo(-60, 84); ctx.stroke();
+    ctx.restore();
+    shield();
+    ctx.strokeStyle = '#e8dfc6'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---------- map (real OpenStreetMap coordinates) ----------
+  const PLACES = {
+    Wahlschied: [49.3438, 7.0037], Heusweiler: [49.3385, 6.9299], Holz: [49.3296, 6.9848], Göttelborn: [49.3446, 7.0275],
+    Quierschied: [49.3260, 7.0528], Lummerschied: [49.3546, 7.0023], Kutzhof: [49.3473, 6.9734], Eiweiler: [49.3615, 6.9372],
+    Niedersalbach: [49.3338, 6.9007], 'Obersalbach-Kurhof': [49.3473, 6.8979]
+  };
+  const proj = ([lat, lon]) => [120 + (lon - 6.89) * 6118, 350 + (49.344 - lat) * 9383];
+
+  function mapBase(a) {
+    ctx.fillStyle = '#e6d7b0';
+    ctx.fillRect(0, 0, W, H);
+    const r = rng(7);
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(120,90,40,${r() * .07})`;
+      ctx.beginPath(); ctx.arc(r() * W, r() * H, 40 + r() * 140, 0, 7); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(90,70,40,.18)'; ctx.lineWidth = 1;
+    for (let k = 0; k < 9; k++) {
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 10) { const y = 100 + k * 70 + Math.sin(x * .006 + k) * 22 + Math.sin(x * .017 + k * 2) * 8; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(70,50,25,.8)';
+    ctx.font = 'italic 18px Alegreya, Georgia, serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('↓ Saarbrücken, ca. 12 km Luftlinie', W - 40, H - 40);
+    ctx.textAlign = 'left';
+    ctx.fillText('N ↑', 40, H - 40);
+  }
+
+  function placeDot(name, pos, a, main) {
+    const [x, y] = pos;
+    ctx.save();
+    ctx.globalAlpha = clamp(a);
+    ctx.fillStyle = main ? '#a8322a' : '#3b2f1f';
+    ctx.beginPath(); ctx.arc(x, y, main ? 11 : 7, 0, 7); ctx.fill();
+    ctx.font = main ? '800 30px "Alegreya SC", Georgia, serif' : '500 22px "Alegreya SC", Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(name, x, y - (main ? 22 : 16));
+    ctx.restore();
+  }
+
+  // ---------- scenes ----------
+  // Each scene: chapter label, caption segments [year label, text], and a draw(p, T, lt) function.
+  const DUSK = ['#2d2a4a', '#d9885a'];
+  const scenes = [
+    {
+      chap: 'Titel', year: '', caps: [
+        ['', 'Nördlich von Saarbrücken, auf 359 Metern Höhe, liegt am Wahlbach ein kleines Dorf: Wahlschied.'],
+        ['', 'Es ist der flächenmäßig kleinste Ortsteil der Gemeinde Heusweiler, und zugleich der älteste Ort im Köllertal.']
+      ],
+      draw(p, T) {
+        const d = ease(p);
+        landscape({
+          T, cam: d * 260, night: .5 * (1 - d), village: 'heute', lit: p < .5,
+          sky: [mix('#1d2742', '#6c98c1', d), mix('#e59a6a', '#f4d8a8', d)],
+          sun: [880, lerp(560, 250, d), 34, '#ffe7b0', 'rgba(255,200,120,.45)'],
+          churches: [{ wx: 700, type: 'ev' }, { wx: 1040, type: 'kath', s: .8 }],
+          fog: .35 * (1 - d), front: (fc, n) => stream(fc, n, T)
+        });
+        const a = seg(p, .05, .2) - seg(p, .9, 1);
+        centerText('WAHLSCHIED', 250, '800 118px "Alegreya SC", Georgia, serif', '#f6eedb', a);
+        centerText('am Wahlbach · Saarland · 66265', 330, 'italic 32px Alegreya, Georgia, serif', '#f6eedb', a * seg(p, .15, .3));
+      }
+    },
+    {
+      chap: 'Ersterwähnung', year: '1331', caps: [
+        ['1331', '1331 wird Wahlschied zum ersten Mal in einer Urkunde erwähnt. Damit gilt es als ältester Ort des Köllertals.'],
+        ['bis 1735', 'Der Name wechselt lange: Waldschid, Walscheidt, Walschit, Wallschied. Erst um 1735 setzt sich „Wahlschied“ durch.'],
+        ['14. Jh.', 'Das Kirchenrecht an der Kirche St. Willibrord halten zunächst die Ritter von Dagstuhl. Im 14. Jahrhundert geht es an den Deutschen Orden.']
+      ],
+      draw(p, T, lt) {
+        landscape({
+          T, cam: 120 + p * 80, village: 'alt',
+          sky: ['#7fa7c4', '#efd9a8'], sun: [230, 150, 30, '#fff1c8', 'rgba(255,230,160,.35)'],
+          churches: [{ wx: 720, type: 'alt' }],
+          mid: (cam, n) => banner(820 - cam, hy(820, VL.base, VL.amp, VL.s) + 2, T, n),
+          front: (fc, n) => stream(fc, n, T)
+        });
+        // sepia wash: we are in the past
+        ctx.fillStyle = 'rgba(120,85,40,.18)'; ctx.fillRect(0, 0, W, H);
+        const open = seg(p, .02, .16) - seg(p, .6, .66);
+        if (open > 0) {
+          parchment(640, 250, 560, 190, open);
+          const names = ['Waldschid', 'Walscheidt', 'Waldschied', 'Walschiedt', 'Walschit', 'Walscheit', 'Walscheid', 'Wallschied'];
+          const inNames = p > .3 && p < .6;
+          const nm = inNames ? names[Math.floor(lt / .55) % names.length] : 'Wahlschied';
+          centerText(p < .3 ? 'Anno Domini MCCCXXXI' : 'Waldschid … Wallschied', 205, 'italic 26px Alegreya, Georgia, serif', '#5a3d1c', open * seg(p, .1, .16), false);
+          centerText(nm, 272, '800 64px "Alegreya SC", Georgia, serif', inNames ? '#6b3a22' : '#3b2410', open * seg(p, .12, .18), false);
+        }
+        if (p > .66) arms(1080, 220, 1, seg(p, .68, .76));
+        if (p > .66) label('Ritter von Dagstuhl → Deutscher Orden', 1080, 350, seg(p, .72, .8), 18);
+      }
+    },
+    {
+      chap: 'Heusweiler', year: '1576', caps: [
+        ['1576', '1576 wird Wahlschied Teil von Heusweiler. Auf der Karte liegen die Dörfer nur wenige Kilometer auseinander.'],
+        ['1576', 'Ringsum liegen Holz, Kutzhof, Lummerschied, Göttelborn und Quierschied.']
+      ],
+      draw(p) {
+        mapBase();
+        const w = proj(PLACES.Wahlschied), h = proj(PLACES.Heusweiler);
+        const k = ease(seg(p, .1, .45));
+        ctx.strokeStyle = '#a8322a'; ctx.lineWidth = 4; ctx.setLineDash([12, 10]);
+        ctx.beginPath(); ctx.moveTo(w[0], w[1]); ctx.lineTo(lerp(w[0], h[0], k), lerp(w[1], h[1], k)); ctx.stroke();
+        ctx.setLineDash([]);
+        placeDot('Wahlschied', w, 1, true);
+        placeDot('Heusweiler', h, seg(p, .35, .45), true);
+        ['Holz', 'Kutzhof', 'Lummerschied', 'Göttelborn', 'Quierschied'].forEach((n, i) =>
+          placeDot(n, proj(PLACES[n]), seg(p, .55 + i * .06, .62 + i * .06)));
+        centerText('1576', 640, '800 70px "Alegreya SC", Georgia, serif', '#3b2410', seg(p, .05, .15), false);
+      }
+    },
+    {
+      chap: 'Krieg & Wiederaufbau', year: '1618–1648', caps: [
+        ['1618–1648', 'Im Dreißigjährigen Krieg wird die Kirche von Wahlschied zerstört.'],
+        ['1648', '1648, im Jahr des Westfälischen Friedens, wird sie wieder aufgebaut.']
+      ],
+      draw(p, T) {
+        const war = p < .5;
+        const d = ease(seg(p, .5, .75));
+        landscape({
+          T, cam: 150, village: 'alt', night: war ? .75 : .75 * (1 - d),
+          sky: war ? ['#1a0f14', '#7a2b1a'] : [mix('#1a0f14', '#8fb2c9', d), mix('#7a2b1a', '#f0d6a4', d)],
+          sun: war ? null : [300, lerp(520, 200, d), 30, '#ffeec0', 'rgba(255,220,150,.4)'],
+          churches: [{ wx: 720, type: 'alt' }],
+          mid: (cam, n) => {
+            const x = 720 - cam, y = hy(720, VL.base, VL.amp, VL.s);
+            if (war) { flames(x + 10, y - 20, 110, 150, T, seg(p, 0, .1) * (1 - seg(p, .4, .5))); smoke(x, y - 90, T, 1, true); }
+            else {
+              // scaffold while rebuilding
+              ctx.strokeStyle = `rgba(90,62,34,${1 - seg(p, .8, .95)})`; ctx.lineWidth = 3;
+              for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(x - 40 + i * 24, y); ctx.lineTo(x - 40 + i * 24, y - 100); ctx.stroke(); }
+              for (let j = 1; j < 4; j++) { ctx.beginPath(); ctx.moveTo(x - 46, y - j * 28); ctx.lineTo(x + 62, y - j * 28); ctx.stroke(); }
+            }
+          },
+          front: (fc, n) => stream(fc, n, T)
+        });
+        ctx.fillStyle = 'rgba(120,85,40,.14)'; ctx.fillRect(0, 0, W, H);
+        if (!war) centerText('Frieden', 260, 'italic 60px Alegreya, Georgia, serif', '#fff4dc', seg(p, .6, .7) - seg(p, .92, 1));
+      }
+    },
+    {
+      chap: 'Erste Schule', year: '1725', caps: [
+        ['1725', '1725 bekommt Wahlschied seine erste Schule.']
+      ],
+      draw(p, T) {
+        landscape({
+          T, cam: 200 + p * 60, village: 'barock',
+          sky: ['#86aecb', '#ecdcb4'], sun: [1040, 140, 28, '#fff1c8', 'rgba(255,230,160,.35)'],
+          churches: [{ wx: 720, type: 'alt' }],
+          front: (fc, n) => stream(fc, n, T)
+        });
+        ctx.fillStyle = 'rgba(120,85,40,.12)'; ctx.fillRect(0, 0, W, H);
+        // slate board
+        const a = seg(p, .1, .25);
+        ctx.save(); ctx.globalAlpha = a;
+        ctx.fillStyle = '#6b4a2b'; ctx.fillRect(440, 150, 400, 220);
+        ctx.fillStyle = '#2b3330'; ctx.fillRect(456, 166, 368, 188);
+        ctx.fillStyle = '#e9e6dc';
+        ctx.font = 'italic 44px Alegreya, Georgia, serif'; ctx.textAlign = 'center';
+        const txt = 'Anno 1725';
+        const n = Math.floor(seg(p, .2, .55) * txt.length);
+        ctx.fillText(txt.slice(0, n), 640, 235);
+        ctx.font = '26px Alegreya, Georgia, serif';
+        ctx.fillText('A · B · C · 1 · 2 · 3'.slice(0, Math.floor(seg(p, .55, .9) * 19)), 640, 300);
+        ctx.restore();
+      }
+    },
+    {
+      chap: 'Bergbau', year: '1773', caps: [
+        ['1773', '1773 wird Wahlschied zur Bergbausiedlung.'],
+        ['1773', 'Im ersten Stollen arbeiten gerade einmal vier Bergleute. Glück auf!']
+      ],
+      draw(p, T) {
+        // cross-section: surface on top, coal seams below
+        sky('#7e9fb8', '#e2cfa6');
+        const ground = x => 250 + Math.sin(x * .004) * 20;
+        ctx.fillStyle = '#4a6a4c';
+        ctx.beginPath(); ctx.moveTo(0, H);
+        for (let x = 0; x <= W; x += 10) ctx.lineTo(x, ground(x));
+        ctx.lineTo(W, H); ctx.fill();
+        const g = ctx.createLinearGradient(0, 260, 0, H);
+        g.addColorStop(0, '#6a4a2e'); g.addColorStop(1, '#2a1c12');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(0, H);
+        for (let x = 0; x <= W; x += 10) ctx.lineTo(x, ground(x) + 14);
+        ctx.lineTo(W, H); ctx.fill();
+        ctx.fillStyle = '#0f0c0a';
+        for (const [y0, th] of [[380, 16], [520, 26], [640, 12]]) {
+          ctx.beginPath(); ctx.moveTo(0, y0);
+          for (let x = 0; x <= W; x += 20) ctx.lineTo(x, y0 + Math.sin(x * .005 + y0) * 12 - x * .04);
+          for (let x = W; x >= 0; x -= 20) ctx.lineTo(x, y0 + th + Math.sin(x * .005 + y0) * 12 - x * .04);
+          ctx.fill();
+        }
+        for (let i = 0; i < 9; i++) {
+          const x = 120 + i * 130;
+          house(x, ground(x), 34, 22, '#d6c7a6', '#7d3b2a', false, 0);
+        }
+        // adit (Stollen) with timber frames
+        const ty = 505, tx0 = 120, tx1 = 120 + 1000 * ease(seg(p, 0, .3));
+        ctx.fillStyle = '#17110c';
+        ctx.fillRect(tx0, ty - 60, tx1 - tx0, 60);
+        ctx.fillStyle = '#8a6437';
+        for (let x = tx0; x < tx1; x += 80) { ctx.fillRect(x, ty - 60, 6, 60); ctx.fillRect(x + 50, ty - 60, 6, 60); ctx.fillRect(x - 2, ty - 64, 60, 6); }
+        ctx.fillStyle = '#17110c';
+        ctx.fillRect(tx0 - 8, ground(tx0) + 10, 50, ty - ground(tx0) - 10);
+        // four miners walking in with lamps
+        for (let i = 0; i < 4; i++) {
+          const x = tx0 + 60 + ((p * 900 + i * 110) % Math.max(60, tx1 - tx0 - 80));
+          if (p > .15) miner(x, ty, T + i, 0);
+        }
+        // coal cart
+        const cx = tx0 + 40 + seg(p, .4, 1) * 700;
+        ctx.fillStyle = '#3a3330'; ctx.fillRect(cx, ty - 26, 46, 20);
+        ctx.fillStyle = '#0f0c0a'; ctx.beginPath(); ctx.arc(cx + 23, ty - 28, 18, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#111';
+        for (const wx of [cx + 10, cx + 36]) { ctx.beginPath(); ctx.arc(wx, ty - 4, 5, 0, 7); ctx.fill(); }
+        centerText('Glück auf!', 150, '800 64px "Alegreya SC", Georgia, serif', '#2a1c12', seg(p, .55, .65), false);
+      }
+    },
+    {
+      chap: 'Kirche, Bus, Obus', year: '1901', caps: [
+        ['1901', '1901 beginnt der Bau der heutigen evangelischen Kirche.'],
+        ['1922', '1922 wird der „Heidenfriedhof“ angelegt. Hier wurden bis zum Zweiten Weltkrieg Menschen beerdigt, die nicht auf dem Kirchhof liegen durften. 2021 wurde er restauriert.'],
+        ['1927', 'Ab 1927 fährt ein Linienbus nach Saarbrücken.'],
+        ['1953', 'Und ab 1953 hält in Wahlschied der Oberleitungsbus auf der Linie Heusweiler – Holz.']
+      ],
+      draw(p, T) {
+        const yr = p < .62 ? 1927 : 1953;
+        landscape({
+          T, cam: 300, village: 'j1900',
+          sky: ['#6b9cc2', '#d7e6e6'], sun: [200, 120, 30, '#fff8e0', 'rgba(255,245,210,.35)'],
+          churches: [{ wx: 720, type: 'ev', grow: ease(seg(p, 0, .15)) }],
+          mid: (cam) => {
+            if (p > .2 && p < .5) {
+              // small walled cemetery on the hill
+              const x = 1000 - cam, y = hy(1000, VL.base, VL.amp, VL.s);
+              const a = seg(p, .2, .26) - seg(p, .45, .5);
+              ctx.save(); ctx.globalAlpha = a;
+              ctx.fillStyle = '#8a8478'; ctx.fillRect(x - 70, y - 10, 140, 10);
+              ctx.fillStyle = '#b8b2a5';
+              for (let i = 0; i < 5; i++) { ctx.fillRect(x - 55 + i * 26, y - 30, 10, 20); ctx.beginPath(); ctx.arc(x - 50 + i * 26, y - 30, 5, Math.PI, 0); ctx.fill(); }
+              ctx.restore();
+              label('Heidenfriedhof', x, y - 50, a, 18);
+            }
+          },
+          front: (fc, n) => {
+            const road = 640;
+            ctx.fillStyle = '#5a5751'; ctx.fillRect(0, road, W, 26);
+            ctx.strokeStyle = '#d8d2c0'; ctx.setLineDash([24, 20]); ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, road + 13); ctx.lineTo(W, road + 13); ctx.stroke(); ctx.setLineDash([]);
+            if (yr === 1953) {
+              ctx.strokeStyle = '#2b2b2b'; ctx.lineWidth = 2;
+              ctx.beginPath(); ctx.moveTo(0, road - 92); ctx.lineTo(W, road - 92); ctx.moveTo(0, road - 88); ctx.lineTo(W, road - 88); ctx.stroke();
+              ctx.fillStyle = '#3a3a3a';
+              for (let x = 60; x < W; x += 300) ctx.fillRect(x, road - 100, 5, 100);
+            }
+            if (p > .5) {
+              const bp = yr === 1927 ? seg(p, .5, .62) : seg(p, .64, 1);
+              bus(lerp(-120, W + 120, bp), road + 18, yr);
+            }
+          }
+        });
+        if (p > .5) label(yr === 1927 ? 'Linienbus nach Saarbrücken' : 'Obus Heusweiler – Holz', 640, 120, 1, 22);
+      }
+    },
+    {
+      chap: 'Gebietsreform', year: '1956', caps: [
+        ['1956', '1956 wird die neue katholische Kirche eingeweiht.'],
+        ['1.1.1974', 'Am 1. Januar 1974 entsteht bei der saarländischen Gebietsreform die heutige Gemeinde Heusweiler.'],
+        ['1.1.1974', 'Wahlschied schließt sich mit Heusweiler, Eiweiler, Holz, Kutzhof, Niedersalbach und Obersalbach-Kurhof zusammen.']
+      ],
+      draw(p, T) {
+        if (p < .3) {
+          landscape({
+            T, cam: 420, village: 'heute',
+            sky: ['#5f93bf', '#dde9e8'], sun: [1100, 120, 28, '#fff8e0', 'rgba(255,245,210,.35)'],
+            churches: [{ wx: 720, type: 'ev' }, { wx: 1000, type: 'kath', s: 1.1, grow: ease(seg(p, 0, .15)) }],
+            front: (fc, n) => stream(fc, n, T)
+          });
+          ctx.fillStyle = `rgba(230,215,176,${seg(p, .24, .3)})`; ctx.fillRect(0, 0, W, H);
+          return;
+        }
+        mapBase();
+        const names = ['Wahlschied', 'Heusweiler', 'Eiweiler', 'Holz', 'Kutzhof', 'Niedersalbach', 'Obersalbach-Kurhof'];
+        const pts = names.map(n => proj(PLACES[n]));
+        const c = pts.reduce((a, b) => [a[0] + b[0] / pts.length, a[1] + b[1] / pts.length], [0, 0]);
+        const k = ease(seg(p, .55, .85));
+        // outline of the new municipality
+        ctx.strokeStyle = `rgba(168,50,42,${k})`; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(c[0], c[1], 470, 210, 0, 0, 7); ctx.stroke();
+        names.forEach((n, i) => placeDot(n, pts[i], seg(p, .3 + i * .03, .36 + i * .03), n === 'Wahlschied'));
+        centerText('Gemeinde Heusweiler · 1. Januar 1974', 640, '800 42px "Alegreya SC", Georgia, serif', '#3b2410', k, false);
+      }
+    },
+    {
+      chap: 'Heute', year: 'Heute', caps: [
+        ['Heute', 'Heute leben rund 1.500 Menschen in Wahlschied, auf gerade einmal 2,12 Quadratkilometern.'],
+        ['Heute', 'Über dem Ort steht der Sendeturm auf der Göttelborner Höhe, am Bach die alte Ölmühle Berschweiler.'],
+        ['Heute', 'Der Sportverein SV Wahlschied von 1920 spielt seit 2014 zusammen mit Holz als SV Holz/Wahlschied.']
+      ],
+      draw(p, T) {
+        const d = ease(seg(p, .2, 1));
+        landscape({
+          T, cam: 380 + p * 140, village: 'heute', night: d * .55, lit: d > .4,
+          sky: [mix('#5f93bf', DUSK[0], d), mix('#e8e3c8', DUSK[1], d)],
+          sun: [lerp(980, 1060, d), lerp(160, 470, d), 32, '#ffe2a8', 'rgba(255,190,110,.45)'],
+          churches: [{ wx: 720, type: 'ev' }, { wx: 1000, type: 'kath', s: 1.1 }],
+          back: (c, n) => tower(1520 - c, hy(1520, LAYERS[1].base, LAYERS[1].amp, LAYERS[1].s) + 4, T, n),
+          front: (fc, n) => { stream(fc, n, T); oilMill(160, 682, T, n); signpost(1120, 680, seg(p, .55, .75), T); }
+        });
+        const a = seg(p, .02, .1) - seg(p, .5, .58);
+        centerText('1.478 Einwohner · 2,12 km² · 359 m ü. NN', 250, '600 34px Karla, system-ui, sans-serif', '#fff8e8', a);
+        if (p > .3 && p < .56) {
+          const aa = seg(p, .3, .36) - seg(p, .5, .56);
+          label('Sendeturm Göttelborner Höhe', 1520 - (380 + p * 140) * .6, 190, aa, 18);
+          label('Ölmühle Berschweiler', 170, 560, aa, 18);
+        }
+      }
+    },
+    {
+      chap: 'Abspann', year: '', caps: [
+        ['', 'Wahlschied am Wahlbach. Klein, aber seit 1331 auf der Karte.']
+      ],
+      draw(p, T) {
+        landscape({
+          T, cam: 520, village: 'heute', night: 1, lit: true,
+          sky: ['#060a16', '#1c2a47'], sun: [1080, 120, 22, '#f4efe0', 'rgba(240,235,220,.25)'],
+          churches: [{ wx: 720, type: 'ev' }, { wx: 1000, type: 'kath', s: 1.1 }],
+          back: (c, n) => tower(1520 - c, hy(1520, LAYERS[1].base, LAYERS[1].amp, LAYERS[1].s) + 4, T, n)
+        });
+        ctx.fillStyle = `rgba(6,10,22,${.35 + .4 * seg(p, .6, 1)})`; ctx.fillRect(0, 0, W, H);
+        arms(640, 230, 1.25, seg(p, .05, .2));
+        centerText('WAHLSCHIED', 400, '800 76px "Alegreya SC", Georgia, serif', '#f6eedb', seg(p, .15, .3));
+        centerText('seit 1331', 460, 'italic 30px Alegreya, Georgia, serif', '#d9a441', seg(p, .25, .4));
+      }
+    }
+  ];
+
+  // timing: each caption gets enough time to be read (and spoken)
+  let total = 0;
+  for (const s of scenes) {
+    s.segs = s.caps.map(([yr, txt]) => ({ yr, txt, dur: Math.max(4.5, txt.length / 13 + 1.8) }));
+    s.start = total;
+    s.dur = s.segs.reduce((a, b) => a + b.dur, 0);
+    total += s.dur;
+  }
+
+  function locate(t) {
+    t = clamp(t, 0, total - 1e-3);
+    let si = scenes.findIndex(s => t < s.start + s.dur);
+    if (si < 0) si = scenes.length - 1;
+    const s = scenes[si];
+    let lt = t - s.start, ci = 0, acc = 0;
+    while (ci < s.segs.length - 1 && lt >= acc + s.segs[ci].dur) acc += s.segs[ci++].dur;
+    return { si, s, lt, p: lt / s.dur, ci, cap: s.segs[ci] };
+  }
+
+  // ---------- render ----------
+  let t = 2.6, playing = false, last = 0, lastKey = '';
+  const subEl = document.getElementById('sub');
+  const seekEl = document.getElementById('seek');
+  const clockEl = document.getElementById('clock');
+  const fmt = x => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+
+  function render() {
+    const L = locate(t);
+    const T = reduceMotion ? 1 : t;
+    ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    ctx.save();
+    L.s.draw(L.p, T, L.lt);
+    ctx.restore();
+    // letterbox fade between scenes
+    const edge = Math.min(L.lt, L.s.dur - L.lt);
+    if (edge < .6 && t > .6 && t < total - .6) { ctx.fillStyle = `rgba(0,0,0,${1 - edge / .6})`; ctx.fillRect(0, 0, W, H); }
+    yearStamp(L.cap.yr, clamp(L.lt * 2));
+    // film grain vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, H * .45, W / 2, H / 2, H * .95);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.35)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+
+    const key = L.si + ':' + L.ci;
+    if (key !== lastKey) {
+      lastKey = key;
+      subEl.textContent = L.cap.txt;
+      if (playing) speak(L.cap.txt);
+      chapterBtns.forEach((b, i) => b.setAttribute('aria-current', i === L.si ? 'true' : 'false'));
+    }
+    seekEl.value = Math.round(t / total * 1000);
+    clockEl.textContent = `${fmt(t)} / ${fmt(total)}`;
+  }
+
+  function loop(now) {
+    if (!playing) return;
+    const dt = Math.min(.1, (now - last) / 1000);
+    last = now;
+    t += dt;
+    if (t >= total) { t = total - .01; render(); setPlaying(false); return; }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- narration (browser speech synthesis, German voice if available) ----------
+  const voiceBtn = document.getElementById('voice');
+  const musicBtn = document.getElementById('music');
+  let voiceOn = 'speechSynthesis' in window, germanVoice = null;
+  if (!voiceOn) { voiceBtn.setAttribute('aria-pressed', 'false'); voiceBtn.disabled = true; voiceBtn.title = 'Dieser Browser hat keine Sprachausgabe'; }
+  function pickVoice() {
+    const vs = speechSynthesis.getVoices();
+    germanVoice = vs.find(v => /^de/i.test(v.lang) && /google|natural|online/i.test(v.name)) || vs.find(v => /^de/i.test(v.lang)) || null;
+  }
+  if (voiceOn) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function speak(txt) {
+    if (!voiceOn) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(txt.replace('1.478', '1478'));
+      u.lang = 'de-DE'; u.rate = 1; u.pitch = .95;
+      if (germanVoice) u.voice = germanVoice;
+      speechSynthesis.speak(u);
+    } catch (e) { /* narration is optional */ }
+  }
+  function hush() { try { speechSynthesis.cancel(); } catch (e) {} }
+
+  // ---------- music: a soft generated drone in D with a slow melody ----------
+  let audio = null, musicOn = true;
+  function startMusic() {
+    if (audio || !musicOn) { if (audio) audio.master.gain.setTargetAtTime(musicOn ? .16 : 0, audio.ac.currentTime, .4); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ac = new AC();
+    const master = ac.createGain(); master.gain.value = 0; master.connect(ac.destination);
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; lp.connect(master);
+    [73.42, 110, 146.83].forEach((f, i) => {
+      const o = ac.createOscillator(); o.type = i ? 'triangle' : 'sine'; o.frequency.value = f;
+      const g = ac.createGain(); g.gain.value = i ? .08 : .2;
+      const lfo = ac.createOscillator(); lfo.frequency.value = .07 + i * .03;
+      const lg = ac.createGain(); lg.gain.value = .04; lfo.connect(lg); lg.connect(g.gain);
+      o.connect(g); g.connect(lp); o.start(); lfo.start();
+    });
+    // pentatonic melody, one soft note every two seconds
+    const notes = [293.66, 329.63, 369.99, 440, 493.88, 587.33];
+    const r = rng(1331);
+    const tick = () => {
+      if (!audio) return;
+      if (playing && musicOn) {
+        const o = ac.createOscillator(); o.type = 'sine';
+        o.frequency.value = notes[Math.floor(r() * notes.length)];
+        const g = ac.createGain(); const now = ac.currentTime;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(.09, now + .08); g.gain.exponentialRampToValueAtTime(.001, now + 2.6);
+        o.connect(g); g.connect(lp); o.start(now); o.stop(now + 2.7);
+      }
+      setTimeout(tick, 2000);
+    };
+    audio = { ac, master };
+    master.gain.setTargetAtTime(.16, ac.currentTime, .8);
+    tick();
+  }
+  function musicLevel() { if (audio) audio.master.gain.setTargetAtTime(playing && musicOn ? .16 : 0, audio.ac.currentTime, .3); }
+
+  // ---------- controls ----------
+  const playBtn = document.getElementById('play');
+  const bigPlay = document.getElementById('bigplay');
+  const chapNav = document.getElementById('chapters');
+  const chapterBtns = scenes.map((s, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = `<b>${s.year || (i ? '∎' : '▶')}</b><span></span>`;
+    b.querySelector('span').textContent = s.chap;
+    b.addEventListener('click', () => { t = s.start + .01; lastKey = ''; if (!playing) setPlaying(true); else render(); });
+    chapNav.appendChild(b);
+    return b;
+  });
+
+  function setPlaying(on) {
+    playing = on;
+    playBtn.textContent = on ? '❚❚ Pause' : '▶ Abspielen';
+    bigPlay.hidden = on;
+    if (on) {
+      if (t >= total - .05) t = 0;
+      startMusic(); musicLevel();
+      lastKey = '';
+      last = performance.now();
+      requestAnimationFrame(loop);
+    } else { hush(); musicLevel(); }
+  }
+  playBtn.addEventListener('click', () => setPlaying(!playing));
+  bigPlay.addEventListener('click', () => { if (t > 5) t = 0; setPlaying(true); });
+  seekEl.addEventListener('input', () => { t = seekEl.value / 1000 * total; lastKey = playing ? '' : lastKey; render(); });
+  voiceBtn.addEventListener('click', () => { voiceOn = !voiceOn; voiceBtn.setAttribute('aria-pressed', voiceOn); if (!voiceOn) hush(); });
+  musicBtn.addEventListener('click', () => { musicOn = !musicOn; musicBtn.setAttribute('aria-pressed', musicOn); if (musicOn) startMusic(); musicLevel(); });
+  document.addEventListener('keydown', e => { if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); setPlaying(!playing); } });
+
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(320, Math.round(r.width * dpr));
+    cv.height = Math.round(cv.width * 9 / 16);
+    render();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  if (document.fonts) document.fonts.ready.then(render);
+})();
+</script>
