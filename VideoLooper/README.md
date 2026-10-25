@@ -4,7 +4,7 @@ Android-App, die Videos vom Handy verlängert, indem sie einen Abschnitt nahtlos
 Die App sucht den wiederkehrenden Ablauf **automatisch** und setzt Start- und Endpunkt des Loops
 bildgenau – du musst nichts selbst schneiden.
 
-**Fertige APK:** [`apk/LoopForge-1.0.apk`](apk/LoopForge-1.0.apk) (Android 10 oder neuer)
+**Fertige APK:** [`apk/LoopForge.apk`](apk/LoopForge.apk) – Version 1.1, Android 10 oder neuer
 
 ## Funktionen
 
@@ -13,6 +13,14 @@ bildgenau – du musst nichts selbst schneiden.
   Loop-Ende zurück zum Anfang nicht von einem normalen Bildwechsel zu unterscheiden ist. Verglichen
   werden ganze Bildfolgen, damit auch die Bewegungsrichtung passt (ein Pendel, das nach links
   schwingt, wird nicht an eines geklebt, das nach rechts schwingt).
+- **Lang & harmonisch** (Standard) – der Loop darf lang sein und dazwischen etwas ganz anderes
+  zeigen; bewertet wird nur, ob der Moment des Zurückspringens stimmig ist. Alternativ
+  **Kurz & perfekt** für die kürzeste saubere Wiederholung.
+- **Weiche Überblendung** (0,2–2 s) – das Loop-Ende geht in Bild und Ton sanft in den Anfang über.
+  Dafür wird das Material direkt vor dem Loop-Start (oder nach dem Loop-Ende) unter den Loop gelegt
+  und überblendet, sodass der Sprung auch bei nicht exakt gleichen Momenten nicht auffällt. Die
+  Erkennung berücksichtigt das: Sie sucht Stellen, an denen die überblendeten Abschnitte
+  zusammenpassen (kein Doppelbild). Die Nahtstellen-Lupe zeigt die Mitte der Überblendung vorab.
 - **Perioden-Erkennung** – periodische Bewegungen (Schaukel, Wellen, Lüfter, Tanzschritt …) werden
   erkannt, z. B. „Wiederholung alle 1,60 s“, und Loops werden auf ganze Perioden geschnitten.
 - **Nahtlos-Score** (0–100) für jeden Vorschlag, mehrere Alternativen (bester, längster, kürzester Loop).
@@ -33,7 +41,7 @@ bildgenau – du musst nichts selbst schneiden.
 
 ## Installation
 
-1. `apk/LoopForge-1.0.apk` aufs Handy laden.
+1. `apk/LoopForge.apk` aufs Handy laden (Updates lassen sich über die alte Version installieren).
 2. Öffnen und „Installation aus unbekannten Quellen“ für den Browser/Dateimanager erlauben.
 3. LoopForge starten → **Video auswählen**.
 
@@ -59,5 +67,6 @@ als Artefakt bereit.
 | `analysis/FrameSampler.kt` | Dekodiert alle Frames per MediaCodec und liest die YUV-Ebenen direkt aus |
 | `analysis/LoopEngine.kt` | Ähnlichkeitsmatrix, Loop-Suche, Perioden-Erkennung, Score (reines Kotlin, getestet) |
 | `export/LoopExporter.kt` | Rendert Intro/Loop/Outro mit Media3 Transformer, speichert in der Galerie |
+| `export/Crossfade.kt` | Wahl und Verlauf der Überblendung an der Nahtstelle |
 | `export/Mp4Concat.kt` | Hängt die kodierten Segmente ohne Neukodierung aneinander |
 | `ui/…` | Jetpack-Compose-Oberfläche (Neon-Glas-Design) |
