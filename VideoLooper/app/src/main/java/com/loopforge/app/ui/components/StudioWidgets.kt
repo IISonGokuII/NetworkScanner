@@ -501,10 +501,28 @@ fun LoopTimeline(
     }
 }
 
-/** Last frame before the jump next to the first frame after it, plus an automatic blink test. */
+/**
+ * Last frame before the jump next to the first frame after it. Below, either an automatic blink
+ * test of the hard cut or – with a cross-fade – a live dissolve between the two pictures that are
+ * mixed in the middle of the fade, so double images become visible before exporting.
+ */
 @Composable
-fun SeamLens(last: ImageBitmap?, first: ImageBitmap?, aspectRatio: Float, quality: Float) {
+fun SeamLens(
+    last: ImageBitmap?,
+    first: ImageBitmap?,
+    blendA: ImageBitmap?,
+    blendB: ImageBitmap?,
+    aspectRatio: Float,
+    quality: Float,
+) {
+    val blending = blendA != null && blendB != null
     val transition = rememberInfiniteTransition(label = "blink")
+    val dissolve by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1600), androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "dissolve",
+    )
     val showFirst by transition.animateFloat(
         initialValue = 0f,
         targetValue = 0f,
@@ -534,7 +552,17 @@ fun SeamLens(last: ImageBitmap?, first: ImageBitmap?, aspectRatio: Float, qualit
                 .clip(RoundedCornerShape(18.dp))
                 .background(Color.Black),
         ) {
-            if (last != null && first != null) {
+            if (blending) {
+                Image(blendA!!, null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+                Image(
+                    blendB!!,
+                    null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = dissolve },
+                )
+            } else if (last != null && first != null) {
                 Image(last, null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
                 Image(
                     first,
@@ -552,12 +580,19 @@ fun SeamLens(last: ImageBitmap?, first: ImageBitmap?, aspectRatio: Float, qualit
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 InfoPill(
-                    "BLINK-TEST · ${if (firstVisible) "Anfang" else "Ende"}",
+                    if (blending) "ÜBERBLENDUNG · Mitte" else "BLINK-TEST · ${if (firstVisible) "Anfang" else "Ende"}",
                     color = Neon.Text,
                     modifier = Modifier.background(Color(0x88000000), RoundedCornerShape(50)),
                 )
                 InfoPill(
-                    if (quality >= 0.85f) "springt kaum" else if (quality >= 0.6f) "leichter Sprung" else "sichtbarer Sprung",
+                    when {
+                        blending && quality >= 0.85f -> "weicher Übergang"
+                        blending && quality >= 0.6f -> "leichtes Doppelbild"
+                        blending -> "deutliches Doppelbild"
+                        quality >= 0.85f -> "springt kaum"
+                        quality >= 0.6f -> "leichter Sprung"
+                        else -> "sichtbarer Sprung"
+                    },
                     color = Neon.quality(quality),
                     modifier = Modifier.background(Color(0x88000000), RoundedCornerShape(50)),
                 )

@@ -119,6 +119,16 @@ fun ExportOverlay(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (state.output.crossfadeSkipped) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Hinweis: Dieses Gerät konnte die Überblendung nicht rendern – es wurde hart geschnitten.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Neon.Amber,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 Spacer(Modifier.height(20.dp))
                 GradientButton("Abspielen", icon = Icons.Rounded.PlayArrow, modifier = Modifier.fillMaxWidth()) {
                     play(context, state.output.uri)

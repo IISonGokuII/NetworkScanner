@@ -29,7 +29,7 @@ object Mp4Concat {
                 val f = extractor.getTrackFormat(i)
                 listOf(
                     f.getString(MediaFormat.KEY_MIME),
-                    f.int(MediaFormat.KEY_WIDTH), f.int(MediaFormat.KEY_HEIGHT),
+                    f.int(MediaFormat.KEY_WIDTH), f.int(MediaFormat.KEY_HEIGHT), f.int(MediaFormat.KEY_ROTATION),
                     f.int(MediaFormat.KEY_SAMPLE_RATE), f.int(MediaFormat.KEY_CHANNEL_COUNT),
                     f.bytesHash("csd-0"), f.bytesHash("csd-1"), f.bytesHash("csd-2"),
                 ).joinToString("/")

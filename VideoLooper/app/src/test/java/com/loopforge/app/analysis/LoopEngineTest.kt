@@ -89,6 +89,53 @@ class LoopEngineTest {
     }
 
     @Test
+    fun prefersLongLoopWhenOnlyTheTransitionHasToMatch() {
+        // A pendulum at the start and the end, something completely different in between.
+        val period = 30
+        val random = Random(3)
+        var x = 16f
+        var y = 16f
+        val wander = (0 until 400).map {
+            x = (x + random.nextFloat() * 3f - 1.5f).coerceIn(4f, 28f)
+            y = (y + random.nextFloat() * 3f - 1.5f).coerceIn(4f, 28f)
+            Pair(x, y)
+        }
+        val features = synthetic(360) { f ->
+            if (f in 90 until 270) wander[f] else Pair(16f + 10f * sin(2 * PI * f / period).toFloat(), 16f)
+        }
+        val engine = LoopEngine(features)
+        val long = engine.detect(minLoopSec = 1.0).candidates.first()
+        println("long mode best=$long")
+        assertTrue("loop should span the different middle part: $long", long.startFrame < 90 && long.endFrame > 270)
+        assertTrue("quality ${long.quality}", long.quality > 0.9f)
+
+        engine.style = SeamStyle(preferLong = false)
+        val perfect = engine.detect(minLoopSec = 0.5).candidates.first()
+        println("perfect mode best=$perfect")
+        assertTrue(perfect.quality >= long.quality - 0.01f)
+    }
+
+    @Test
+    fun crossFadeForgivesSmallMismatches() {
+        // The swing loses a little amplitude every cycle, so no cut is exact.
+        val period = 32
+        val features = synthetic(320) { f ->
+            Pair(16f + (11f - f * 0.012f) * sin(2 * PI * f / period).toFloat(), 16f)
+        }
+        val engine = LoopEngine(features)
+        val start = 20
+        val end = start + 8 * period
+        val hard = engine.evaluate(start, end)
+        engine.style = SeamStyle(blendFrames = 12)
+        val soft = engine.evaluate(start, end)
+        println("hard=$hard soft=$soft")
+        assertTrue(soft > hard)
+        val best = engine.detect(minLoopSec = 1.0).candidates.first()
+        assertTrue("blend mode keeps whole periods: $best", abs((best.endFrame - best.startFrame) % period) <= 1 ||
+            period - (best.endFrame - best.startFrame) % period <= 1)
+    }
+
+    @Test
     fun staticNoisyVideoLoopsEverywhere() {
         val features = synthetic(150, noise = 6) { Pair(16f, 16f) }
         val engine = LoopEngine(features)

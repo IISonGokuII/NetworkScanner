@@ -112,7 +112,7 @@ fun StudioScreen(vm: LoopViewModel, previewActive: Boolean) {
             }
         }
 
-        Verdict(best.quality, detection.periodUs, detection.periodStrength)
+        Verdict(best.quality, detection.periodUs, detection.periodStrength, vm.crossfadeOn)
 
         LoopPreview(
             uri = info.uri,
@@ -131,9 +131,21 @@ fun StudioScreen(vm: LoopViewModel, previewActive: Boolean) {
         GlassCard(Modifier.fillMaxWidth()) {
             SectionTitle("Erkannte Loops") { InfoPill("${detection.candidates.size} Treffer", color = Neon.Cyan) }
             Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NeonChip("Lang & harmonisch", vm.preferLong) { vm.updatePreferLong(true) }
+                NeonChip("Kurz & perfekt", !vm.preferLong) { vm.updatePreferLong(false) }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (vm.preferLong) "Der Loop darf lang sein und dazwischen alles enthalten – nur der Moment des Zurückspringens muss stimmig sein."
+                else "Sucht die kürzeste Wiederholung mit dem saubersten Übergang.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Neon.TextFaint,
+            )
+            Spacer(Modifier.height(12.dp))
             CandidateCarousel(detection.candidates, vm.candidateThumbs, selection, vm::select)
             Spacer(Modifier.height(14.dp))
-            val maxMin = max(0.5f, min(10f, info.durationUs / 1e6f * 0.7f))
+            val maxMin = max(0.5f, info.durationUs / 1e6f * 0.9f)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Mindestlänge", style = MaterialTheme.typography.bodyMedium, color = Neon.TextDim, modifier = Modifier.weight(1f))
                 Text(String.format(Locale.GERMAN, "%.1f s", vm.minLoopSec), style = MaterialTheme.typography.labelLarge, color = Neon.Text)
@@ -209,7 +221,43 @@ fun StudioScreen(vm: LoopViewModel, previewActive: Boolean) {
             SectionTitle("Nahtstellen-Lupe") { ScoreRing(selection.quality, size = 30.dp, stroke = 3.dp, showLabel = false) }
             Spacer(Modifier.height(12.dp))
             val seam = vm.seamFrames
-            SeamLens(seam?.last, seam?.first, info.aspectRatio, selection.quality)
+            SeamLens(seam?.last, seam?.first, seam?.blendA, seam?.blendB, info.aspectRatio, selection.quality)
+        }
+
+        // Transition
+        GlassCard(Modifier.fillMaxWidth()) {
+            SectionTitle("Übergang")
+            Spacer(Modifier.height(4.dp))
+            SwitchRow(
+                "Weiche Überblendung",
+                "Das Loop-Ende geht sanft in den Anfang über (Bild und Ton) – so wirkt der Sprung auch dann harmonisch, wenn beide Momente nicht exakt gleich sind.",
+                vm.crossfadeOn,
+            ) { vm.updateCrossfade(on = it) }
+            if (vm.crossfadeOn) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Dauer", style = MaterialTheme.typography.bodyMedium, color = Neon.TextDim, modifier = Modifier.weight(1f))
+                    Text(String.format(Locale.GERMAN, "%.1f s", vm.crossfadeSec), style = MaterialTheme.typography.labelLarge, color = Neon.Text)
+                }
+                Slider(
+                    value = vm.crossfadeSec,
+                    onValueChange = { vm.updateCrossfade(seconds = (it * 10).roundToInt() / 10f) },
+                    valueRange = 0.2f..2f,
+                    colors = neonSlider(),
+                )
+                val fade = plan?.crossfade
+                Text(
+                    when {
+                        fade == null -> "Vor und nach dem Loop ist zu wenig Material – es wird hart geschnitten."
+                        fade.fadeUs + 50_000L < (vm.crossfadeSec * 1e6f).toLong() ->
+                            "Nur ${formatSeconds(fade.fadeUs)} möglich, weil der Loop so kurz ist oder so nah am Rand liegt."
+                        fade.side == com.loopforge.app.export.Crossfade.Side.TAIL ->
+                            "Blendet über das Material direkt vor dem Loop-Start."
+                        else -> "Blendet über das Material direkt nach dem Loop-Ende."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Neon.TextFaint,
+                )
+            }
         }
 
         // Length
@@ -315,11 +363,12 @@ fun StudioScreen(vm: LoopViewModel, previewActive: Boolean) {
 }
 
 @Composable
-private fun Verdict(quality: Float, periodUs: Long?, strength: Float) {
+private fun Verdict(quality: Float, periodUs: Long?, strength: Float, crossfade: Boolean) {
     val (title, text) = when {
+        quality >= LoopEngine.SEAMLESS && crossfade -> "Harmonischer Übergang gefunden" to "Mit der Überblendung ist der Sprung zurück nicht zu sehen."
         quality >= LoopEngine.SEAMLESS -> "Perfekter Loop gefunden" to "Der Übergang ist praktisch unsichtbar."
         quality >= 0.6f -> "Guter Loop gefunden" to "Eine kleine Nahtstelle kann sichtbar sein – prüfe sie in der Lupe."
-        else -> "Kein exakter Wiederholungsablauf" to "Das ist die beste Annäherung. Wähle auf der Karte einen hellen Punkt oder schneide selbst."
+        else -> "Kein stimmiger Übergang" to "Das ist die beste Annäherung. Probiere eine längere Überblendung, wähle auf der Karte einen hellen Punkt oder schneide selbst."
     }
     val color = Neon.quality(quality)
     GlassCard(Modifier.fillMaxWidth(), padding = 14.dp) {

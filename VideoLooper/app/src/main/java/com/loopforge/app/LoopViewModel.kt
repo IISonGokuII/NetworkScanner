@@ -22,8 +22,10 @@ import com.loopforge.app.analysis.Detection
 import com.loopforge.app.analysis.FrameSampler
 import com.loopforge.app.analysis.LoopCandidate
 import com.loopforge.app.analysis.LoopEngine
+import com.loopforge.app.analysis.SeamStyle
 import com.loopforge.app.analysis.VideoInfo
 import com.loopforge.app.analysis.VideoProbe
+import com.loopforge.app.export.Crossfade
 import com.loopforge.app.export.ExportOutput
 import com.loopforge.app.export.ExportPlan
 import com.loopforge.app.export.LoopExporter
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 class LoopViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -48,7 +51,16 @@ class LoopViewModel(app: Application) : AndroidViewModel(app) {
         data class Failed(val message: String) : ExportState
     }
 
-    class SeamFrames(val last: ImageBitmap, val first: ImageBitmap)
+    /**
+     * Frames around the jump: the last one before it and the first one after it, plus – with a
+     * cross-fade – the two pictures that are mixed 50/50 in the middle of the fade.
+     */
+    class SeamFrames(
+        val last: ImageBitmap,
+        val first: ImageBitmap,
+        val blendA: ImageBitmap? = null,
+        val blendB: ImageBitmap? = null,
+    )
 
     var stage by mutableStateOf(Stage.HOME)
         private set
@@ -82,6 +94,14 @@ class LoopViewModel(app: Application) : AndroidViewModel(app) {
     var includeIntro by mutableStateOf(false)
     var includeOutro by mutableStateOf(false)
     var keepAudio by mutableStateOf(true)
+
+    /** Long loops where only the transition has to fit, instead of short perfect ones. */
+    var preferLong by mutableStateOf(true)
+        private set
+    var crossfadeOn by mutableStateOf(true)
+        private set
+    var crossfadeSec by mutableFloatStateOf(DEFAULT_CROSSFADE_SEC)
+        private set
     val exportState = MutableStateFlow<ExportState>(ExportState.Idle)
 
     private var probe: VideoProbe? = null
@@ -118,6 +138,7 @@ class LoopViewModel(app: Application) : AndroidViewModel(app) {
                 analysisMessage = "Wiederholungen werden gesucht…"
                 minLoopSec = defaultMinLoop(videoInfo.durationUs)
                 val loopEngine = withContext(Dispatchers.Default) { LoopEngine(features) }
+                loopEngine.style = seamStyle(loopEngine)
                 val found = withContext(Dispatchers.Default) { loopEngine.detect(minLoopSec.toDouble()) }
                 val pixels = withContext(Dispatchers.Default) { loopEngine.similarityImage() }
                 val n = loopEngine.coarseCount
@@ -175,16 +196,48 @@ class LoopViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateMinLoop(seconds: Float) {
         minLoopSec = seconds
+        redetect()
+    }
+
+    fun updatePreferLong(value: Boolean) {
+        if (preferLong == value) return
+        preferLong = value
+        redetect(delayMs = 0)
+    }
+
+    fun updateCrossfade(on: Boolean = crossfadeOn, seconds: Float = crossfadeSec) {
+        crossfadeOn = on
+        crossfadeSec = seconds
+        redetect()
+    }
+
+    /** Re-runs the search with the current settings; a hand-picked loop is kept and re-rated. */
+    private fun redetect(delayMs: Long = 300) {
         val e = engine ?: return
         redetectJob?.cancel()
         redetectJob = viewModelScope.launch {
-            delay(300)
-            val found = withContext(Dispatchers.Default) { e.detect(seconds.toDouble()) }
+            delay(delayMs)
+            val style = seamStyle(e)
+            val min = minLoopSec.toDouble()
+            val found = withContext(Dispatchers.Default) {
+                e.style = style
+                e.detect(min)
+            }
             detection = found
-            if (selection?.kind != CandidateKind.MANUAL) select(found.candidates.first())
+            val current = selection
+            if (current == null || current.kind != CandidateKind.MANUAL) {
+                select(found.candidates.first())
+            } else {
+                select(e.candidate(current.startFrame, current.endFrame, CandidateKind.MANUAL))
+            }
             loadCandidateThumbs()
         }
     }
+
+    private fun seamStyle(e: LoopEngine) = SeamStyle(
+        blendFrames = if (crossfadeOn) (crossfadeSec * 1e6 / e.frameIntervalUs).roundToInt() else 0,
+        preferLong = preferLong,
+    )
 
     /** The plan for the current settings, or null while nothing is selected. */
     fun plan(): ExportPlan? {
@@ -199,6 +252,8 @@ class LoopViewModel(app: Application) : AndroidViewModel(app) {
             includeIntro = includeIntro,
             includeOutro = includeOutro,
             keepAudio = keepAudio && i.hasAudio,
+            crossfadeUs = if (crossfadeOn) (crossfadeSec * 1_000_000L).toLong() else 0L,
+            frameIntervalUs = engine?.frameIntervalUs?.toLong() ?: 33_333L,
         )
         val repeats = when (lengthMode) {
             LengthMode.REPEATS -> repeatCount
@@ -262,7 +317,23 @@ class LoopViewModel(app: Application) : AndroidViewModel(app) {
             val c = selection ?: return@launch
             val last = p.frame(e.timestampUs(c.endFrame - 1), SEAM_SIZE, SEAM_SIZE, exact = true)
             val first = p.frame(e.timestampUs(c.startFrame), SEAM_SIZE, SEAM_SIZE, exact = true)
-            if (last != null && first != null) seamFrames = SeamFrames(last.asImageBitmap(), first.asImageBitmap())
+            // The middle of the cross-fade, where both pictures are on screen at 50 %.
+            val fade = plan()?.crossfade
+            var blendA: Bitmap? = null
+            var blendB: Bitmap? = null
+            if (fade != null) {
+                val half = fade.fadeUs / 2
+                val (loopSide, otherSide) = if (fade.side == Crossfade.Side.TAIL) {
+                    (c.endUs - half) to (c.startUs - half)
+                } else {
+                    (c.startUs + half) to (c.endUs + half)
+                }
+                blendA = p.frame(loopSide, SEAM_SIZE, SEAM_SIZE, exact = true)
+                blendB = p.frame(otherSide, SEAM_SIZE, SEAM_SIZE, exact = true)
+            }
+            if (last != null && first != null) {
+                seamFrames = SeamFrames(last.asImageBitmap(), first.asImageBitmap(), blendA?.asImageBitmap(), blendB?.asImageBitmap())
+            }
         }
     }
 
@@ -326,5 +397,6 @@ class LoopViewModel(app: Application) : AndroidViewModel(app) {
         private const val FILMSTRIP_FRAMES = 12
         private const val SEAM_SIZE = 540
         const val MAX_REPEATS = 3000
+        const val DEFAULT_CROSSFADE_SEC = 0.6f
     }
 }

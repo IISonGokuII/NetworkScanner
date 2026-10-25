@@ -4,10 +4,12 @@ import java.util.Random
 import java.util.stream.IntStream
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** A loop plays frames [startFrame, endFrame) over and over; the frame after the seam is [startFrame]. */
@@ -28,6 +30,19 @@ data class LoopCandidate(
 }
 
 enum class CandidateKind { BEST, LONGEST, SHORTEST, ALTERNATIVE, MANUAL }
+
+/**
+ * How the loop is going to be joined, which decides what makes a seam "harmonious".
+ */
+data class SeamStyle(
+    /** Length of the cross-fade at the seam in frames; 0 = hard cut. */
+    val blendFrames: Int = 0,
+    /**
+     * Prefer long loops – the content in between may differ, only the transition has to fit –
+     * over short loops with a mathematically perfect seam.
+     */
+    val preferLong: Boolean = true,
+)
 
 data class Detection(
     val candidates: List<LoopCandidate>,
@@ -50,6 +65,10 @@ data class Detection(
  * hit is refined frame-accurately on the full-resolution fingerprints.
  */
 class LoopEngine(val features: FrameFeatures) {
+
+    /** Seam style used by [detect], [snap], [candidate] and [evaluate]. */
+    @Volatile
+    var style: SeamStyle = SeamStyle()
 
     val frameCount: Int = features.count
     private val ts = features.timestampsUs
@@ -126,9 +145,9 @@ class LoopEngine(val features: FrameFeatures) {
         val rank = FloatArray(n * n) { Float.NEGATIVE_INFINITY }
         for (a in 0 until n) {
             for (b in a + minLenC until n) {
-                val q = quality(coarseCost(a, b), noiseCoarse, randCoarse)
+                val q = coarseQuality(a, b)
                 quality[a * n + b] = q
-                rank[a * n + b] = q + rankBonus(a, b)
+                rank[a * n + b] = q + rankBonus(a, b, q)
             }
         }
         if (rank.none { it > Float.NEGATIVE_INFINITY }) {
@@ -154,7 +173,7 @@ class LoopEngine(val features: FrameFeatures) {
         }
 
         val bestQ = quality[picks.first()]
-        val threshold = max(SEAMLESS, bestQ - 0.04f)
+        val threshold = if (bestQ >= SEAMLESS) SEAMLESS else bestQ - 0.05f
         val longest = extremeLength(quality, threshold, longest = true)
         val shortest = extremeLength(quality, threshold, longest = false)
 
@@ -193,7 +212,7 @@ class LoopEngine(val features: FrameFeatures) {
         var bestQ = -1f
         for (a in max(0, a0 - r)..min(n - 1, a0 + r)) {
             for (b in max(a + minLenC, b0 - r)..min(n - 1, b0 + r)) {
-                val q = quality(coarseCost(a, b), noiseCoarse, randCoarse)
+                val q = coarseQuality(a, b)
                 if (q > bestQ) {
                     bestQ = q; bestA = a; bestB = b
                 }
@@ -214,10 +233,10 @@ class LoopEngine(val features: FrameFeatures) {
         return LoopCandidate(s, e, clipStartUs(s), clipEndUs(e), evaluate(s, e), kind)
     }
 
-    /** Seamlessness of the loop [startFrame, endFrame), 0..1. */
+    /** How harmonious the jump of the loop [startFrame, endFrame) is with the current [style], 0..1. */
     fun evaluate(startFrame: Int, endFrame: Int): Float {
         if (frameCount < 2 || endFrame - startFrame < 1 || endFrame >= frameCount) return 0f
-        return quality(fineCost(startFrame, endFrame), noiseFine, randFine)
+        return fineQuality(startFrame, endFrame)
     }
 
     fun clipStartUs(frame: Int): Long =
@@ -257,9 +276,16 @@ class LoopEngine(val features: FrameFeatures) {
     // Internals
     // ---------------------------------------------------------------------------------------
 
-    private fun rankBonus(a: Int, b: Int): Float {
+    private fun rankBonus(a: Int, b: Int, quality: Float): Float {
         val n = coarseCount
-        val lengthBonus = LENGTH_BONUS * (b - a) / max(1, n - 1).toFloat()
+        val relativeLength = (b - a) / max(1, n - 1).toFloat()
+        val lengthBonus = if (style.preferLong) {
+            // Length only counts once the transition is decent; a long loop with a hard jump is no win.
+            val gate = ((quality - LONG_GATE_FROM) / (SEAMLESS - LONG_GATE_FROM)).coerceIn(0f, 1f)
+            LONG_BONUS * relativeLength * gate
+        } else {
+            LENGTH_BONUS * relativeLength
+        }
         // Prefer loops with something happening in them over a frozen part of the clip.
         val fa = a * stride
         val fb = b * stride
@@ -294,25 +320,22 @@ class LoopEngine(val features: FrameFeatures) {
         val r = stride
         var bestA = a0
         var bestB = b0
-        var bestCost = Float.MAX_VALUE
+        var bestQ = -1f
         for (s in max(0, a0 - r)..min(frameCount - 2, a0 + r)) {
             for (e in max(s + minFrames, b0 - r)..min(frameCount - 1, b0 + r)) {
-                val c = fineCost(s, e)
-                if (c < bestCost) {
-                    bestCost = c; bestA = s; bestB = e
+                val q = fineQuality(s, e)
+                if (q > bestQ) {
+                    bestQ = q; bestA = s; bestB = e
                 }
             }
         }
-        if (bestCost == Float.MAX_VALUE) return candidate(a0, b0, kind)
-        return LoopCandidate(
-            bestA, bestB, clipStartUs(bestA), clipEndUs(bestB),
-            quality(bestCost, noiseFine, randFine), kind,
-        )
+        if (bestQ < 0f) return candidate(a0, b0, kind)
+        return LoopCandidate(bestA, bestB, clipStartUs(bestA), clipEndUs(bestB), bestQ, kind)
     }
 
     private fun minLoopFrames(minLoopSec: Double): Int {
         val wanted = (minLoopSec * 1e6 / frameIntervalUs).roundToInt()
-        val cap = max(2, (frameCount - 2) * 3 / 4)
+        val cap = max(2, (frameCount - 2) * 19 / 20)
         return wanted.coerceIn(2, cap)
     }
 
@@ -369,6 +392,48 @@ class LoopEngine(val features: FrameFeatures) {
         val x = ((cost - noise) / span).coerceIn(0f, 1f)
         return (1f - x).pow(QUALITY_GAMMA)
     }
+
+    private fun coarseQuality(a: Int, b: Int): Float {
+        val blend = min(style.blendFrames, (b - a) * stride / 3)
+        if (blend < MIN_BLEND_FRAMES) return quality(coarseCost(a, b), noiseCoarse, randCoarse)
+        val k = max(1, ceil(blend / stride.toDouble()).toInt())
+        return quality(BLEND_VISIBILITY * blendCost(a, b, k, coarseCount) { x, y -> matrix[x * coarseCount + y] }, noiseCoarse, randCoarse)
+    }
+
+    private fun fineQuality(a: Int, b: Int): Float {
+        val blend = min(style.blendFrames, (b - a) / 3)
+        if (blend < MIN_BLEND_FRAMES) return quality(fineCost(a, b), noiseFine, randFine)
+        return quality(BLEND_VISIBILITY * blendCost(a, b, blend, frameCount, ::fineD2), noiseFine, randFine)
+    }
+
+    /**
+     * Cost of a cross-faded seam. The exporter blends the last [k] frames of the loop with the [k]
+     * frames before its start (or, when the loop starts too early, the first [k] frames with the
+     * frames after its end), so what matters is how alike those two stretches are. Mismatches in
+     * the middle of the fade, where both pictures are 50/50 on screen, weigh most.
+     */
+    private inline fun blendCost(a: Int, b: Int, k: Int, size: Int, d2: (Int, Int) -> Float): Float {
+        val after = size - b
+        val tail = a >= k || (b + k > size && a >= after)
+        val from = if (tail) -min(k, a) else 0
+        val to = if (tail) -1 else min(k, after) - 1
+        if (to < from) return coarseFallback(a, b, size)
+        var sum = 0f
+        var weights = 0f
+        val span = (to - from + 1).coerceAtLeast(1)
+        for (j in from..to) {
+            val x = a + j
+            val y = b + j
+            if (x < 0 || y >= size) continue
+            val w = sin(PI * (j - from + 0.5) / span).toFloat()
+            sum += w * d2(x, y)
+            weights += w
+        }
+        return if (weights > 0f) sqrt(sum / weights) else coarseFallback(a, b, size)
+    }
+
+    private fun coarseFallback(a: Int, b: Int, size: Int): Float =
+        if (size == coarseCount) coarseCost(a, b) else fineCost(a, b)
 
     private fun coarseCost(a: Int, b: Int): Float {
         val n = coarseCount
@@ -506,6 +571,14 @@ class LoopEngine(val features: FrameFeatures) {
 
         private const val RANDOM_PAIRS = 3000
         private const val QUALITY_GAMMA = 1.5f
+
+        /** Below this many frames a cross-fade is treated like a hard cut. */
+        private const val MIN_BLEND_FRAMES = 3
+
+        /** In a 50/50 blend a difference is only about half as visible as in a hard cut. */
+        private const val BLEND_VISIBILITY = 0.55f
+        private const val LONG_BONUS = 0.35f
+        private const val LONG_GATE_FROM = 0.5f
         private const val MIN_VISIBLE_DIFFERENCE = 2f
         private const val NOISE_PERCENTILE = 0.1f
         private const val DUPLICATE_SEC = 0.25
