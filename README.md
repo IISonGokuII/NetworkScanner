@@ -49,3 +49,8 @@ app/src/main/res/menu/         — Navigation
 - ACCESS_WIFI_STATE — WLAN-Informationen
 - CHANGE_WIFI_STATE — WLAN-Scan
 - ACCESS_FINE_LOCATION — WLAN-Scan (Android 10+)
+
+## Weitere App in diesem Repository
+
+**LoopForge** (`VideoLooper/`) – verlängert Videos durch nahtlose, automatisch erkannte Loops.
+Details und fertige APK: [VideoLooper/README.md](VideoLooper/README.md)
