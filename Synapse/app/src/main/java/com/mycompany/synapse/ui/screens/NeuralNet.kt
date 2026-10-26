@@ -1,14 +1,28 @@
 package com.mycompany.synapse.ui.screens
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
+import com.mycompany.synapse.ui.components.reducedMotion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -18,7 +32,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -64,88 +77,123 @@ fun NeuralNetwork(
 ) {
     val c = Synapse.colors
     val tm = rememberTextMeasurer()
+    val still = reducedMotion()
     var time by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(Unit) {
-        val start = withFrameNanos { it }
-        while (true) withFrameNanos { now -> time = (now - start) / 1_000_000_000f }
+    LaunchedEffect(still) {
+        if (still) return@LaunchedEffect
+        val start = withInfiniteAnimationFrameNanos { it }
+        while (true) withInfiniteAnimationFrameNanos { now -> time = (now - start) / 1_000_000_000f }
     }
     val neurons = remember {
         val rng = Random(42)
         List(44) { Neuron(rng.nextFloat(), rng.nextFloat(), 0.2f + rng.nextFloat() * 0.5f, rng.nextFloat() * 6.28f, 1f + rng.nextFloat() * 1.6f) }
     }
-    Canvas(
-        modifier.pointerInput(Unit) {
-            detectTapGestures { pos ->
-                val s = Size(size.width.toFloat(), size.height.toFloat())
-                val center = Offset(s.width / 2, s.height / 2)
-                if ((pos - center).getDistance() < 70.dp.toPx()) {
-                    onCenter()
-                    return@detectTapGestures
-                }
-                val hit = Domain.entries.minBy { (nodeCenter(it.ordinal, s, 0f, 0f) - pos).getDistance() }
-                if ((nodeCenter(hit.ordinal, s, 0f, 0f) - pos).getDistance() < 56.dp.toPx()) onDomain(hit)
+    // Nachbarschaften nur einmal bestimmen – die Punkte bewegen sich nur minimal
+    val pairs = remember(neurons) {
+        buildList {
+            for (i in neurons.indices) for (j in i + 1 until neurons.size) {
+                if (hypot(neurons[i].x - neurons[j].x, neurons[i].y - neurons[j].y) < 0.19f) add(i to j)
             }
         }
-    ) {
-        val t = time
-        val center = Offset(size.width / 2, size.height / 2)
-        drawAmbient(neurons, t, c)
-        val breath = 3.dp.toPx()
-        val nodes = Domain.entries.map { nodeCenter(it.ordinal, size, t, breath) }
-
-        // Verbindungen: Ring und Speichen
-        for (d in Domain.entries) {
-            val i = d.ordinal
-            val v = vitality[d] ?: 0f
-            val col = c.domain(d)
-            val next = nodes[(i + 1) % nodes.size]
-            drawLine(c.textMuted.copy(alpha = 0.16f), nodes[i], next, 1.dp.toPx())
-            drawLine(
-                Brush.linearGradient(listOf(Color.White.copy(alpha = 0.10f + v * 0.2f), col.copy(alpha = 0.25f + v * 0.55f)), center, nodes[i]),
-                center, nodes[i], (1.2f + v * 1.6f).dp.toPx(), cap = StrokeCap.Round,
-                pathEffect = if (v < 0.05f) PathEffect.dashPathEffect(floatArrayOf(8f, 10f)) else null,
-            )
-            // Impulse, die von der Mitte zum Knoten wandern
-            val count = 1 + (v * 3).toInt()
-            for (k in 0 until count) {
-                val p = ((t * (0.18f + v * 0.35f) + k.toFloat() / count + i * 0.13f) % 1f)
-                val pos = center + (nodes[i] - center) * p
-                val a = sin(p * PI).toFloat() * (0.35f + v * 0.65f)
-                drawCircle(col.copy(alpha = a * 0.35f), 6.dp.toPx(), pos)
-                drawCircle(col.copy(alpha = a), 2.4.dp.toPx(), pos)
-            }
-        }
-
-        // Knoten
-        for (d in Domain.entries) {
-            val i = d.ordinal
-            val v = vitality[d] ?: 0f
-            val col = c.domain(d)
-            val p = nodes[i]
-            val r = (25f + v * 8f).dp.toPx()
-            val pulse = 1f + sin(t * 1.6f + i) * 0.06f * (0.3f + v)
-            drawCircle(
-                Brush.radialGradient(listOf(col.copy(alpha = 0.12f + v * 0.42f), Color.Transparent), p, r * 2.5f * pulse),
-                r * 2.5f * pulse, p,
-            )
-            drawCircle(c.surfaceStrong, r, p)
-            drawCircle(col.copy(alpha = 0.18f + v * 0.2f), r, p)
-            drawCircle(col.copy(alpha = 0.45f + v * 0.55f), r, p, style = Stroke(2.dp.toPx()))
-            drawDomainGlyph(d, p, r * 0.95f, col.copy(alpha = 0.65f + v * 0.35f))
-
-            val title = tm.measure(d.title, TextStyle(color = c.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center))
+    }
+    // Beschriftungen nur neu messen, wenn sich Werte oder Farben ändern
+    val labels = remember(indices, c) {
+        Domain.entries.map { d ->
             val idx = indices[d]
-            val sub = tm.measure(idx?.toString() ?: "neu", TextStyle(color = if (idx != null) col else c.textMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold))
-            val below = p.y + r + 4.dp.toPx()
-            drawText(title, topLeft = Offset(p.x - title.size.width / 2f, below))
-            drawText(sub, topLeft = Offset(p.x - sub.size.width / 2f, below + title.size.height))
+            tm.measure(d.title, TextStyle(color = c.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)) to
+                tm.measure(idx?.toString() ?: "neu", TextStyle(color = if (idx != null) c.domain(d) else c.textMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold))
         }
+    }
+    val doneCount = workoutDone.count { it }
+    BoxWithConstraints(modifier) {
+        val density = LocalDensity.current
+        val sizePx = with(density) { Size(maxWidth.toPx(), maxHeight.toPx()) }
+        Canvas(Modifier.fillMaxSize()) {
+            val t = time
+            val center = Offset(size.width / 2, size.height / 2)
+            drawAmbient(neurons, pairs, t, c)
+            val breath = if (still) 0f else 3.dp.toPx()
+            val nodes = Domain.entries.map { nodeCenter(it.ordinal, size, t, breath) }
 
-        drawWorkoutCore(center, t, workoutColors, workoutDone, c, tm)
+            // Verbindungen: Ring und Speichen
+            for (d in Domain.entries) {
+                val i = d.ordinal
+                val v = vitality[d] ?: 0f
+                val col = c.domain(d)
+                val next = nodes[(i + 1) % nodes.size]
+                drawLine(c.textMuted.copy(alpha = 0.16f), nodes[i], next, 1.dp.toPx())
+                drawLine(
+                    Brush.linearGradient(listOf(Color.White.copy(alpha = 0.10f + v * 0.2f), col.copy(alpha = 0.25f + v * 0.55f)), center, nodes[i]),
+                    center, nodes[i], (1.2f + v * 1.6f).dp.toPx(), cap = StrokeCap.Round,
+                    pathEffect = if (v < 0.05f) PathEffect.dashPathEffect(floatArrayOf(8f, 10f)) else null,
+                )
+                // Impulse, die von der Mitte zum Knoten wandern
+                val count = 1 + (v * 3).toInt()
+                for (k in 0 until count) {
+                    val p = ((t * (0.18f + v * 0.35f) + k.toFloat() / count + i * 0.13f) % 1f)
+                    val pos = center + (nodes[i] - center) * p
+                    val a = sin(p * PI).toFloat() * (0.35f + v * 0.65f)
+                    drawCircle(col.copy(alpha = a * 0.35f), 6.dp.toPx(), pos)
+                    drawCircle(col.copy(alpha = a), 2.4.dp.toPx(), pos)
+                }
+            }
+
+            // Knoten
+            for (d in Domain.entries) {
+                val i = d.ordinal
+                val v = vitality[d] ?: 0f
+                val col = c.domain(d)
+                val p = nodes[i]
+                val r = (25f + v * 8f).dp.toPx()
+                val pulse = 1f + sin(t * 1.6f + i) * 0.06f * (0.3f + v)
+                drawCircle(
+                    Brush.radialGradient(listOf(col.copy(alpha = 0.12f + v * 0.42f), Color.Transparent), p, r * 2.5f * pulse),
+                    r * 2.5f * pulse, p,
+                )
+                drawCircle(c.surfaceStrong, r, p)
+                drawCircle(col.copy(alpha = 0.18f + v * 0.2f), r, p)
+                drawCircle(col.copy(alpha = 0.45f + v * 0.55f), r, p, style = Stroke(2.dp.toPx()))
+                drawDomainGlyph(d, p, r * 0.95f, col.copy(alpha = 0.65f + v * 0.35f))
+                val (title, sub) = labels[i]
+                val below = p.y + r + 4.dp.toPx()
+                drawText(title, topLeft = Offset(p.x - title.size.width / 2f, below))
+                drawText(sub, topLeft = Offset(p.x - sub.size.width / 2f, below + title.size.height))
+            }
+
+            drawWorkoutCore(center, t, workoutColors, workoutDone, c, tm)
+        }
+        // Unsichtbare, große Tippflächen – auch für Screenreader beschriftet
+        for (d in Domain.entries) {
+            val p = nodeCenter(d.ordinal, sizePx, 0f, 0f)
+            val half = with(density) { 40.dp.toPx() }
+            Box(
+                Modifier
+                    .offset { IntOffset((p.x - half).toInt(), (p.y - half).toInt()) }
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .clickable { onDomain(d) }
+                    .semantics {
+                        contentDescription = "${d.title}, " + (indices[d]?.let { "Index $it" } ?: "noch nicht eingestuft") + ". Spiele öffnen"
+                        role = Role.Button
+                    }
+            )
+        }
+        val half = with(density) { 66.dp.toPx() }
+        Box(
+            Modifier
+                .offset { IntOffset((sizePx.width / 2 - half).toInt(), (sizePx.height / 2 - half).toInt()) }
+                .size(132.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onCenter)
+                .semantics {
+                    contentDescription = "Tagestraining, $doneCount von ${workoutColors.size} erledigt. Starten"
+                    role = Role.Button
+                }
+        )
     }
 }
 
-private fun DrawScope.drawAmbient(neurons: List<Neuron>, t: Float, c: Palette) {
+private fun DrawScope.drawAmbient(neurons: List<Neuron>, pairs: List<Pair<Int, Int>>, t: Float, c: Palette) {
     val pts = neurons.map { n ->
         Offset(
             (n.x + sin(t * n.speed * 0.3f + n.phase) * 0.025f) * size.width,
@@ -154,11 +202,9 @@ private fun DrawScope.drawAmbient(neurons: List<Neuron>, t: Float, c: Palette) {
     }
     val maxDist = size.minDimension * 0.17f
     val base = if (c.dark) Color(0xFFA5B4FC) else Color(0xFF4F46E5)
-    for (i in pts.indices) {
-        for (j in i + 1 until pts.size) {
-            val d = hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y)
-            if (d < maxDist) drawLine(base.copy(alpha = (1 - d / maxDist) * 0.10f), pts[i], pts[j], 1f)
-        }
+    for ((i, j) in pairs) {
+        val d = hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y)
+        if (d < maxDist) drawLine(base.copy(alpha = (1 - d / maxDist) * 0.10f), pts[i], pts[j], 1f)
     }
     for ((i, p) in pts.withIndex()) {
         val twinkle = 0.25f + 0.25f * sin(t * 1.2f + neurons[i].phase)

@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -86,10 +88,13 @@ fun LineChart(
     val d0 = points.first().day.toEpochDay()
     val d1 = points.last().day.toEpochDay().let { if (it == d0) d0 + 1 else it }
 
+    val summary = "Verlauf vom ${points.first().day.format(dayFmt)} bis ${points.last().day.format(dayFmt)}: " +
+        "von ${format(points.first().value)} auf ${format(points.last().value)}, höchster Wert ${format(points.maxOf { it.value })}"
     Canvas(
         modifier
             .fillMaxWidth()
             .height(height.dp)
+            .semantics { contentDescription = summary }
             .pointerInput(points) {
                 detectTapGestures(onPress = { pos ->
                     val l = 34.dp.toPx()

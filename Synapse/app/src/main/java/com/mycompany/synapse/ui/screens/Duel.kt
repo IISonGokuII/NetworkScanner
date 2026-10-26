@@ -108,7 +108,8 @@ private fun DuelSetup(onBack: () -> Unit, onStart: (DuelConfig) -> Unit) {
 private fun DuelMatch(cfg: DuelConfig, onRematch: () -> Unit, onQuit: () -> Unit) {
     val c = Synapse.colors
     val rng = remember { Random(System.nanoTime()) }
-    fun newTask(): DuelTask = if (cfg.stroop) DuelGen.stroop(rng) else DuelGen.math(cfg.level, rng)
+    val names = c.stroopNames
+    fun newTask(): DuelTask = if (cfg.stroop) DuelGen.stroop(rng, names) else DuelGen.math(cfg.level, rng)
     var task by remember { mutableStateOf(newTask()) }
     var round by remember { mutableIntStateOf(0) }
     val score = remember { mutableStateOf(intArrayOf(0, 0)) }

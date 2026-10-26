@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Bewusst KEINE INTERNET-Berechtigung: keine Werbung, kein Tracking, alles offline. -->
+    <!-- Bewusst KEINE INTERNET-Berechtigung: keine Werbung, kein Tracking, alles offline.
+         allowBackup=false: kein Google-Cloud-Backup. Direkter Umzug Handy-zu-Handy bleibt ab Android 12 möglich. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".SynapseApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -19,6 +20,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
+            android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

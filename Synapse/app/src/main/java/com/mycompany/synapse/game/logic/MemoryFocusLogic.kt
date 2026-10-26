@@ -123,9 +123,10 @@ object StroopGen {
         else -> 5
     }
 
-    fun generate(level: Int, rng: Random): StroopTask {
+    /** [available]: Anzahl Farben der aktuellen Palette (Farbschwäche-Modus hat weniger). */
+    fun generate(level: Int, rng: Random, available: Int = NAMES.size): StroopTask {
         val l = level.coerceIn(1, 50)
-        val n = colorCount(l)
+        val n = minOf(colorCount(l), available)
         val incongruent = if (l < 6) 0.5 else 0.75
         val word = rng.nextInt(n)
         val ink = if (rng.nextDouble() < incongruent) (word + 1 + rng.nextInt(n - 1)) % n else word

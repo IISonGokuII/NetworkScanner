@@ -32,9 +32,31 @@ object AnagramGen {
         KASTANIE MATRATZE SANDBURG SCHNECKE APOTHEKE BAUMHAUS EICHHORN GEWITTER LIMONADE SCHAUKEL
         KARTOFFEL BLEISTIFT SCHLÜSSEL FLUGHAFEN MARMELADE ABENTEUER FAHRSTUHL LANDKARTE PANTOFFEL
         UNIVERSUM VOGELNEST FEUERWEHR MANDARINE NOTIZBUCH
+        AFFE ARZT BEET BOHNE BLEI DUFT EULE FASS FEST FLUG FUCHS GIPS GURU HAAR HASE HEFT HERD HIRN
+        HUND JAGD KAMM KELCH KERN KIES KINO KISSEN KOCH KOHL KORN KRUG KUSS LAMA LAUB LEIM LUCHS MOHN MUND
+        NEBEL NETZ NOTE OBOE OHR PASS PELZ PFAD PONY PUMA RAHM RIND ROCK RUHM SAAL SACK SAFT SEIL SENF
+        SOHN STAB STAR TAL TEE TONNE TRUHE TUBA TUCH UHU WAGEN WEG WOLLE WURST ZINN ZOPF ZWERG
+        BIRKE BLITZ BRETT DACHS DAMPF DÜNE EICHE ERBSE FALKE FARN FLOSS FROST GEIST GRILL HAFER HECHT
+        HONIG HUMMEL JUBEL KABEL KANAL KERZE KOFFER KRAKE LACHS LEHRE LIMO LINDE MANGO MATTE MOTTE NADEL
+        OLIVE ORGEL PAKET PERLE PFEIL PILOT PIZZA PLATZ PRINZ QUELLE RABATT RASEN RATTE REGAL ROBBE ROLLE
+        RUDER SAHNE SCHAL SEGEL SPATZ SPECHT STIRN STROM TANNE TAUBE TORTE TRAKTOR TROMMEL TULPE WACHS
+        WALNUSS WESPE WIESE WINKEL ZEBRA ZIEGE ZIMT ZUNGE
+        ANANAS APFELSAFT ARMBAND BADEWANNE BALLON BAGGER BERUF BLUMEN BRILLE DECKEL DRACHEN EIDECHSE
+        FLIEGE FOHLEN GABELN GLOBUS GURKEN HAMSTER HANDY HEIZUNG HIMBEERE HOBEL HUMMER INSEKT JACKE
+        KAPUZE KARTOFFELN KASSE KETTE KOMPOTT KRAWATTE LAKRITZ LEDER MANTEL MARMOR MATROSE MUSEUM NUDELN
+        PALAST PAPAGEI PFLASTER PINSEL POSTER PUDDING RAKETEN RASSEL REISE ROSINE SALBEI SCHAUFEL SCHIFF
+        SCHLITTEN SCHNEE SCHRAUBE SESSEL SOCKEN SPINNE STECKER STRAND TEPPICHE TINTE TOASTER TOMATEN
+        TRAUBE TREPPE VIOLINE VULKANE WALROSS WASSERHAHN WECKER WOLKEN ZEITSCHRIFT ZIRKUS ZUCKERWATTE
+        BIENENSTOCK DAUMENKINO EISBECHER FAHRKARTE GARTENZAUN HAUSTIER KOCHTOPF LEUCHTTURM MEERESBLICK
+        REGENSCHIRM SANDKASTEN SCHNEEMANN SONNENHUT TISCHLAMPE WINTERJACKE
+        ABENDBROT BANKNOTE BUCHSEITE DORFPLATZ ECKBANK FELDWEG GARTENTOR HAFENSTADT KUCHENTEIG
+        LIEDTEXT MILCHGLAS NACHTZUG OBSTKORB PAPIERKORB REISEZIEL SCHULHOF SEEHUND SPIELPLATZ STADTPARK
+        TAGEBUCH UFERWEG VOGELHAUS WALDWEG
     """.trimIndent()
 
-    val words: List<String> by lazy { raw.split(Regex("\\s+")).filter { it.isNotBlank() }.distinct() }
+    val words: List<String> by lazy {
+        raw.split(Regex("\\s+")).filter { it.length in 4..9 && it.all { c -> c.isLetter() } }.distinct()
+    }
     private val dictionary: Set<String> by lazy { words.toSet() }
     private val bySignature: Map<String, List<String>> by lazy { words.groupBy { signature(it) } }
 
@@ -55,9 +77,10 @@ object AnagramGen {
 
     fun alternatives(word: String) = bySignature[signature(word)].orEmpty()
 
-    fun generate(level: Int, rng: Random): AnagramTask {
+    fun generate(level: Int, rng: Random, avoid: Set<String> = emptySet()): AnagramTask {
         val len = wordLength(level.coerceIn(1, 50))
-        val pool = words.filter { it.length == len }.ifEmpty { words }
+        val all = words.filter { it.length == len }.ifEmpty { words }
+        val pool = all.filter { it !in avoid }.ifEmpty { all }
         val word = pool[rng.nextInt(pool.size)]
         var letters: List<Char>
         var tries = 0
@@ -109,6 +132,26 @@ object OddOneGen {
         c("Wetterarten", "eine Wetterart", "Natur", "Regen, Schnee, Hagel, Nebel, Gewitter, Sturm, Frost, Tau, Sonnenschein"),
         c("Farben", "eine Farbe", "Stoffe", "Rot, Blau, Grün, Gelb, Violett, Türkis, Beige, Grau, Weiß, Schwarz"),
         c("Metalle", "ein Metall", "Stoffe", "Eisen, Kupfer, Gold, Silber, Zinn, Blei, Zink, Aluminium, Nickel"),
+        c("Edelsteine", "ein Edelstein", "Stoffe", "Diamant, Rubin, Smaragd, Saphir, Opal, Topas, Amethyst, Jade, Granat"),
+        c("Textilien", "ein Stoff", "Stoffe", "Wolle, Seide, Baumwolle, Leinen, Samt, Filz, Satin, Cord, Fleece"),
+        c("Reptilien", "ein Reptil", "Tiere", "Krokodil, Schlange, Eidechse, Schildkröte, Leguan, Chamäleon, Gecko, Alligator, Waran"),
+        c("Amphibien", "eine Amphibie", "Tiere", "Frosch, Kröte, Molch, Salamander, Unke, Laubfrosch"),
+        c("Nüsse", "eine Nuss", "Essen", "Walnuss, Haselnuss, Mandel, Cashew, Pistazie, Paranuss, Pekannuss, Macadamia"),
+        c("Getreide", "ein Getreide", "Essen", "Weizen, Roggen, Gerste, Hafer, Mais, Reis, Hirse, Dinkel"),
+        c("Süßigkeiten", "eine Süßigkeit", "Essen", "Schokolade, Bonbon, Lutscher, Praline, Keks, Kaugummi, Gummibärchen, Lakritz, Marzipan"),
+        c("Gebäude", "ein Gebäude", "Orte", "Kirche, Schule, Rathaus, Bahnhof, Museum, Turm, Burg, Scheune, Kino, Krankenhaus"),
+        c("Flüsse", "ein Fluss", "Welt", "Rhein, Donau, Elbe, Nil, Amazonas, Themse, Seine, Wolga, Main, Mosel"),
+        c("Gebirge", "ein Gebirge", "Welt", "Alpen, Anden, Himalaya, Pyrenäen, Karpaten, Ural, Harz, Atlas, Rockies"),
+        c("Kontinente", "ein Kontinent", "Welt", "Afrika, Asien, Europa, Australien, Antarktis, Nordamerika, Südamerika"),
+        c("Schreibwaren", "ein Schreibwaren-Artikel", "Schule", "Bleistift, Radiergummi, Lineal, Kuli, Füller, Spitzer, Heft, Zirkel, Textmarker"),
+        c("Schulfächer", "ein Schulfach", "Schule", "Mathe, Deutsch, Biologie, Chemie, Physik, Erdkunde, Geschichte, Kunst, Musik"),
+        c("Spielzeug", "ein Spielzeug", "Freizeit", "Puppe, Ball, Kreisel, Teddy, Murmel, Bauklotz, Puzzle, Jojo, Springseil"),
+        c("Tänze", "ein Tanz", "Freizeit", "Walzer, Tango, Salsa, Polka, Samba, Foxtrott, Rumba, Twist, Flamenco"),
+        c("Schuhe", "ein Schuh", "Mensch", "Stiefel, Sandale, Pantoffel, Turnschuh, Pumps, Clog, Mokassin, Slipper, Gummistiefel"),
+        c("Gefühle", "ein Gefühl", "Abstrakt", "Freude, Angst, Wut, Trauer, Neid, Stolz, Scham, Ekel, Liebe, Hoffnung"),
+        c("Formen", "eine Form", "Abstrakt", "Kreis, Dreieck, Quadrat, Rechteck, Raute, Trapez, Fünfeck, Sechseck, Oval"),
+        c("Monate", "ein Monat", "Zeit", "Januar, Februar, März, April, Mai, Juni, Juli, August, September, Oktober, November, Dezember"),
+        c("Wochentage", "ein Wochentag", "Zeit", "Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag"),
     )
 
     fun wordCount(level: Int) = when {
@@ -117,7 +160,7 @@ object OddOneGen {
         else -> 6
     }
 
-    fun generate(level: Int, rng: Random): OddOneTask {
+    fun generate(level: Int, rng: Random, avoid: Set<String> = emptySet()): OddOneTask {
         val l = level.coerceIn(1, 50)
         val k = wordCount(l)
         val main = categories[rng.nextInt(categories.size)]
@@ -131,7 +174,8 @@ object OddOneGen {
         val oddCat = if (sameGroup.isNotEmpty() && rng.nextDouble() < sameGroupChance) sameGroup[rng.nextInt(sameGroup.size)]
         else others[rng.nextInt(others.size)]
         val picks = main.words.shuffled(rng).take(k - 1)
-        val odd = oddCat.words.filter { it !in main.words }.let { it[rng.nextInt(it.size)] }
+        val oddPool = oddCat.words.filter { it !in main.words }
+        val odd = oddPool.filter { it !in avoid }.ifEmpty { oddPool }.let { it[rng.nextInt(it.size)] }
         val words = (picks + odd).shuffled(rng)
         val explanation = "„$odd“ ist ${oddCat.singular} – die anderen sind ${main.plural}."
         return OddOneTask(words, words.indexOf(odd), explanation)

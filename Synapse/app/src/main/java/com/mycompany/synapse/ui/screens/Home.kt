@@ -1,6 +1,14 @@
 package com.mycompany.synapse.ui.screens
 
 import androidx.compose.foundation.Canvas
+import java.time.temporal.TemporalAdjusters
+import java.time.DayOfWeek
+import com.mycompany.synapse.ui.components.SecondaryButton
+import com.mycompany.synapse.ui.components.PrimaryButton
+import com.mycompany.synapse.ui.ResumeState
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -93,7 +101,7 @@ fun HomeScreen(nav: Navigator) {
                         hour < 18 -> "Hallo"
                         else -> "Guten Abend"
                     },
-                    style = MaterialTheme.typography.headlineLarge, color = c.textPrimary,
+                    style = MaterialTheme.typography.headlineMedium, color = c.textPrimary, maxLines = 1,
                 )
                 Text(
                     LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d. MMMM", Locale.GERMAN)),
@@ -101,7 +109,16 @@ fun HomeScreen(nav: Navigator) {
                 )
             }
             StreakChip(streak.current, streak.trainedToday, streak.jokerUsedThisWeek)
+            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier
+                    .clip(CircleShape)
+                    .clickable { nav.push(Screen.Profiles) }
+                    .semantics { contentDescription = "Profil ${Repo.profile.name}, wechseln" }
+            ) { ProfileAvatar(Repo.profile, 38) }
         }
+        val weekStart = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        WeekDots(weekStart, Repo.trainedDays, Repo.weeklyGoal, Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 10.dp))
 
         NeuralNetwork(
             vitality = vitality,
@@ -114,6 +131,7 @@ fun HomeScreen(nav: Navigator) {
         )
 
         Column(Modifier.padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            HomeNotices(nav)
             WorkoutCard(plan, done, onStart = { startWorkout(nav) })
             IndexCard(onClick = { nav.tab(Screen.Progress) })
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -160,8 +178,8 @@ private fun StreakChip(days: Int, trainedToday: Boolean, joker: Boolean) {
         Text(
             when {
                 days == 0 -> "Serie"
-                !trainedToday -> "Tage · heute offen"
-                joker -> "Tage · Joker genutzt"
+                joker -> "Tage · Joker"
+                !trainedToday -> "Tage · offen"
                 else -> "Tage"
             },
             color = c.textSecondary, style = MaterialTheme.typography.labelSmall,
@@ -237,9 +255,14 @@ private fun IndexCard(onClick: () -> Unit) {
                         )
                     }
                 }
+                val pending = Repo.pendingDomains
                 Text(
-                    if (timeline.isEmpty()) "Starte ein Training – hier siehst du, wie du besser wirst."
-                    else "Mittel deiner Bereiche · tippe für alle Details",
+                    when {
+                        timeline.isEmpty() && Repo.records.isEmpty() -> "Starte ein Training – hier siehst du, wie du besser wirst."
+                        timeline.isEmpty() -> "Nach der zweiten Runde eines Spiels erscheint hier dein Index."
+                        pending.isNotEmpty() -> "In Einstufung: ${pending.joinToString { it.title }} (zählt ab der 2. Runde)"
+                        else -> "Mittel deiner Bereiche · tippe für alle Details"
+                    },
                     style = MaterialTheme.typography.bodyMedium, color = c.textSecondary,
                 )
             }
@@ -390,5 +413,70 @@ fun relativeDay(millis: Long): String {
         0L -> "heute"
         1L -> "gestern"
         else -> "vor $d Tagen"
+    }
+}
+
+// ---------------------------------------------------------------- Hinweise (Fortsetzen, Einstufung, Rückblick, Leistungstest)
+
+@Composable
+private fun HomeNotices(nav: Navigator) {
+    val c = Synapse.colors
+    val resume = Repo.resumeJson?.let { ResumeState.fromJson(it) }
+        ?.takeIf { System.currentTimeMillis() - it.savedAt < 24 * 3_600_000L && GameCatalog.find(it.gameId) != null }
+    if (resume != null) {
+        val g = GameCatalog[resume.gameId]
+        NoticeCard(
+            c.domain(g.domain), "Unterbrochene Runde", "${g.title} · ${resume.results.size} von ${g.trials} Aufgaben erledigt",
+            primary = "Fortsetzen", onPrimary = { nav.push(Screen.Play(g.id, resume.workout, resume.mode, resume)) },
+            secondary = "Verwerfen", onSecondary = { Repo.clearResume() },
+        )
+    }
+    if (!Repo.placementDone && !Repo.placementSkipped) {
+        NoticeCard(
+            c.domain(Domain.LOGIK), "Einstufungstest · 5 Minuten",
+            "Damit jedes Spiel gleich im passenden Level startet – statt bei Level 1.",
+            primary = "Starten", onPrimary = { nav.push(Screen.Test(Repo.KIND_PLACEMENT)) },
+            secondary = "Später", onSecondary = { Repo.skipPlacement() },
+        )
+    }
+    val today = LocalDate.now()
+    val lastWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(1)
+    val showReview = today.dayOfWeek.value <= 3 && Repo.reviewSeenWeek != lastWeek.toEpochDay() &&
+        Repo.trainedDays.any { !it.isBefore(lastWeek) && it.isBefore(lastWeek.plusWeeks(1)) }
+    if (showReview) {
+        NoticeCard(
+            c.good, "Dein Wochenrückblick", weekLabel(lastWeek),
+            primary = "Ansehen", onPrimary = { nav.push(Screen.WeekReviewScreen(lastWeek.toEpochDay())) },
+            secondary = "Später", onSecondary = { Repo.markReviewSeen(lastWeek) },
+        )
+    }
+    if (Repo.benchmarkDue() && (Repo.placementDone || Repo.records.size >= 10)) {
+        NoticeCard(
+            c.domain(Domain.RECHNEN), if (Repo.benchmarkRuns.isEmpty()) "Erster Leistungstest" else "Leistungstest fällig",
+            "Gleiche Schwierigkeit wie beim letzten Mal – so siehst du, ob du wirklich besser wirst.",
+            primary = "Test starten", onPrimary = { nav.push(Screen.Test(Repo.KIND_BENCHMARK)) },
+        )
+    }
+}
+
+@Composable
+private fun NoticeCard(
+    accent: Color,
+    title: String,
+    text: String,
+    primary: String,
+    onPrimary: () -> Unit,
+    secondary: String? = null,
+    onSecondary: (() -> Unit)? = null,
+) {
+    val c = Synapse.colors
+    GlassCard(Modifier.fillMaxWidth(), accent = accent) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (secondary != null && onSecondary != null) SecondaryButton(secondary, Modifier.weight(1f), onClick = onSecondary)
+            PrimaryButton(primary, Modifier.weight(1f), color = accent, onClick = onPrimary)
+        }
     }
 }

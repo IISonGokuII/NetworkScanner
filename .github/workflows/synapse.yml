@@ -7,9 +7,14 @@ on:
       - '.github/workflows/synapse.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_PRIVATE_KEY: ${{ secrets.SYNAPSE_KEYSTORE_BASE64 != '' }}
     defaults:
       run:
         working-directory: Synapse
@@ -27,15 +32,43 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit-Tests (alle Aufgaben-Generatoren & Statistik)
+      # Optional: eigener Signierschlüssel als Secret (siehe Synapse/README.md).
+      - name: Privaten Schlüssel einrichten
+        if: env.HAS_PRIVATE_KEY == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SYNAPSE_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/synapse-release.keystore"
+          echo "SYNAPSE_KEYSTORE_PATH=$RUNNER_TEMP/synapse-release.keystore" >> "$GITHUB_ENV"
+
+      - name: Unit-Tests (Generatoren, Statistik, Tricks)
         run: ./gradlew testDebugUnitTest
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        env:
+          SYNAPSE_KEYSTORE_PASSWORD: ${{ secrets.SYNAPSE_KEYSTORE_PASSWORD }}
+          SYNAPSE_KEY_ALIAS: ${{ secrets.SYNAPSE_KEY_ALIAS }}
+          SYNAPSE_KEY_PASSWORD: ${{ secrets.SYNAPSE_KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "Synapse-2.0.${{ github.run_number }}.apk"
 
-      - name: Upload APK
+      - name: Upload APK (Artefakt)
         uses: actions/upload-artifact@v4
         with:
           name: Synapse-APK
-          path: Synapse/app/build/outputs/apk/release/app-release.apk
+          path: Synapse/Synapse-2.0.${{ github.run_number }}.apk
           retention-days: 30
+
+      # Dauerhafter Download ohne Login: GitHub-Release mit der APK
+      - name: GitHub-Release erstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: synapse-v2.0.${{ github.run_number }}
+          name: Synapse 2.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            Gehirnjogging ohne Werbung – APK zum direkten Installieren.
+            Neue Versionen lassen sich über die alte installieren, der Fortschritt bleibt erhalten.
+          files: Synapse/Synapse-2.0.${{ github.run_number }}.apk

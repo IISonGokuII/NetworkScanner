@@ -4,6 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// In GitHub Actions steigt die Versionsnummer mit jedem Build – so lassen sich Updates über die alte Version installieren.
+val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+
+// Optional eigener, privater Schlüssel (als GitHub-Secret). Ohne Secret wird der Schlüssel aus dem Repo verwendet.
+val releaseKeystore = System.getenv("SYNAPSE_KEYSTORE_PATH")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
     namespace = "com.mycompany.synapse"
     compileSdk = 34
@@ -12,8 +18,8 @@ android {
         applicationId = "com.mycompany.synapse"
         minSdk = 29
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 1 + buildNumber
+        versionName = "2.0.$buildNumber"
     }
 
     // Fester Schlüssel im Repo: Jede neue APK aus GitHub Actions lässt sich über die
@@ -25,6 +31,14 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        if (releaseKeystore != null) {
+            create("private") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("SYNAPSE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("SYNAPSE_KEY_ALIAS")
+                keyPassword = System.getenv("SYNAPSE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -34,7 +48,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("private") ?: signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -53,6 +67,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {
@@ -72,4 +87,5 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

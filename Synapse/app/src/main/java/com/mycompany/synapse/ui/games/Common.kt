@@ -59,6 +59,12 @@ fun GameTrial(gameId: String, ctx: TrialContext, onResult: (TrialResult) -> Unit
         "rotation" -> RotationTrial(ctx, onResult)
         "anagramm" -> AnagramTrial(ctx, onResult)
         "oberbegriff" -> OddOneTrial(ctx, onResult)
+        "wochentag" -> WeekdayTrial(ctx, onResult)
+        "schaetzen" -> EstimateTrial(ctx, onResult)
+        "sudoku" -> SudokuTrial(ctx, onResult)
+        "namen" -> NamesTrial(ctx, onResult)
+        "einkauf" -> ShoppingTrial(ctx, onResult)
+        "weg" -> PathTrial(ctx, onResult)
         else -> Box(Modifier.fillMaxSize())
     }
 }

@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
@@ -54,7 +55,13 @@ import com.mycompany.synapse.ui.components.AppBackground
 import com.mycompany.synapse.ui.screens.AllGamesScreen
 import com.mycompany.synapse.ui.screens.AwardsScreen
 import com.mycompany.synapse.ui.screens.DomainScreen
+import com.mycompany.synapse.ui.screens.DrillScreen
 import com.mycompany.synapse.ui.screens.DuelScreen
+import com.mycompany.synapse.ui.screens.LearnScreen
+import com.mycompany.synapse.ui.screens.LessonScreen
+import com.mycompany.synapse.ui.screens.ProfilesScreen
+import com.mycompany.synapse.ui.screens.TestScreen
+import com.mycompany.synapse.ui.screens.WeekReviewScreen
 import com.mycompany.synapse.ui.screens.GameStatsScreen
 import com.mycompany.synapse.ui.screens.HomeScreen
 import com.mycompany.synapse.ui.screens.MoreScreen
@@ -75,7 +82,7 @@ fun SynapseRoot(activity: ComponentActivity) {
         activity.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
         onDispose { }
     }
-    SynapseTheme(dark) {
+    SynapseTheme(dark, colorblind = Repo.cvdMode) {
         AppBackground {
             if (!Repo.onboarded) {
                 WelcomeScreen(onStart = { Repo.completeOnboarding() })
@@ -91,6 +98,13 @@ private fun MainContent() {
     val nav = remember { Navigator() }
     val holder = rememberSaveableStateHolder()
     BackHandler(enabled = nav.stack.size > 1) { nav.pop() }
+    val link = DeepLink.pending
+    LaunchedEffect(link) {
+        if (link != null) {
+            nav.push(link)
+            DeepLink.pending = null
+        }
+    }
     Box(Modifier.fillMaxSize()) {
         AnimatedContent(
             targetState = nav.current,
@@ -113,6 +127,12 @@ private fun MainContent() {
                     Screen.More -> MoreScreen(nav)
                     Screen.AllGames -> AllGamesScreen(nav)
                     Screen.Duel -> DuelScreen(nav)
+                    Screen.Learn -> LearnScreen(nav)
+                    Screen.Profiles -> ProfilesScreen(nav)
+                    is Screen.LessonDetail -> LessonScreen(screen.lessonId, nav)
+                    is Screen.Drill -> DrillScreen(screen.drillId, nav)
+                    is Screen.Test -> TestScreen(screen.kind, nav)
+                    is Screen.WeekReviewScreen -> WeekReviewScreen(screen.weekStartEpochDay, nav)
                     is Screen.DomainDetail -> DomainScreen(screen.domain, nav)
                     is Screen.Play -> PlayScreen(screen, nav)
                     is Screen.GameStats -> GameStatsScreen(screen.gameId, nav)
@@ -133,6 +153,7 @@ private fun MainContent() {
 
 private enum class Tab(val label: String, val screen: Screen) {
     NET("Netz", Screen.Home),
+    LEARN("Lernen", Screen.Learn),
     PROGRESS("Fortschritt", Screen.Progress),
     AWARDS("Erfolge", Screen.Awards),
     MORE("Mehr", Screen.More),
@@ -145,7 +166,7 @@ private fun BottomBar(nav: Navigator) {
     Row(
         Modifier
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
             .fillMaxWidth()
             .shadow(24.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
             .clip(shape)
@@ -163,7 +184,7 @@ private fun BottomBar(nav: Navigator) {
                     .clickable(remember { MutableInteractionSource() }, indication = androidx.compose.material3.ripple()) {
                         if (!selected) nav.tab(tab.screen)
                     }
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 when (tab) {
@@ -185,6 +206,19 @@ private fun BottomBar(nav: Navigator) {
                         for (i in 0 until pts.size - 1) drawLine(color, pts[i], pts[i + 1], 2.2.dp.toPx(), StrokeCap.Round)
                         drawCircle(color, 2.6.dp.toPx(), pts.last())
                         drawLine(color.copy(alpha = 0.5f), Offset(w * 0.08f, h * 0.92f), Offset(w * 0.92f, h * 0.92f), 1.5.dp.toPx(), StrokeCap.Round)
+                    }
+                    Tab.LEARN -> Canvas(Modifier.size(24.dp)) {
+                        val w = size.width
+                        val h = size.height
+                        val sw = 1.8.dp.toPx()
+                        // aufgeschlagenes Buch
+                        drawLine(color, Offset(w * 0.5f, h * 0.25f), Offset(w * 0.5f, h * 0.85f), sw, StrokeCap.Round)
+                        drawLine(color, Offset(w * 0.5f, h * 0.25f), Offset(w * 0.1f, h * 0.18f), sw, StrokeCap.Round)
+                        drawLine(color, Offset(w * 0.1f, h * 0.18f), Offset(w * 0.1f, h * 0.78f), sw, StrokeCap.Round)
+                        drawLine(color, Offset(w * 0.1f, h * 0.78f), Offset(w * 0.5f, h * 0.85f), sw, StrokeCap.Round)
+                        drawLine(color, Offset(w * 0.5f, h * 0.25f), Offset(w * 0.9f, h * 0.18f), sw, StrokeCap.Round)
+                        drawLine(color, Offset(w * 0.9f, h * 0.18f), Offset(w * 0.9f, h * 0.78f), sw, StrokeCap.Round)
+                        drawLine(color, Offset(w * 0.9f, h * 0.78f), Offset(w * 0.5f, h * 0.85f), sw, StrokeCap.Round)
                     }
                     Tab.AWARDS -> Icon(Icons.Default.Star, null, tint = color, modifier = Modifier.size(24.dp))
                     Tab.MORE -> Icon(Icons.Default.Settings, null, tint = color, modifier = Modifier.size(24.dp))

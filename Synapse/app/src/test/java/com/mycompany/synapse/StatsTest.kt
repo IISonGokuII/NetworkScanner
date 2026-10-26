@@ -68,7 +68,8 @@ class StatsTest {
     @Test fun timelineRisesWithLevels() {
         val records = (0 until 10).map { record("blitz", monday.plusDays(it.toLong()), level = 1 + it * 2) }
         val tl = Stats.timeline(records, zone)
-        assertEquals(10, tl.size)
+        // Der erste Tag zählt noch nicht: ein Spiel fließt erst ab der zweiten Runde in den Index ein
+        assertEquals(9, tl.size)
         assertTrue(tl.zipWithNext().all { (a, b) -> b.overall >= a.overall })
         assertTrue(tl.last().overall > tl.first().overall)
         assertTrue(Domain.RECHNEN in tl.last().domains)
@@ -109,7 +110,7 @@ class StatsTest {
     }
 
     @Test fun everyGameHasMetadata() {
-        assertEquals(15, GameCatalog.all.size)
+        assertEquals(21, GameCatalog.all.size)
         assertEquals(GameCatalog.all.size, GameCatalog.all.map { it.id }.toSet().size)
         for (d in Domain.entries) assertTrue(GameCatalog.ofDomain(d).isNotEmpty())
         for (g in GameCatalog.all) for (l in 1..50) {

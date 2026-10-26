@@ -35,9 +35,12 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mycompany.synapse.data.Repo
 import com.mycompany.synapse.feedback.Feedback
 import com.mycompany.synapse.game.TrialResult
 import com.mycompany.synapse.game.logic.AnagramGen
@@ -129,7 +132,9 @@ fun RotationTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
                         .background(c.surface)
                         .border(1.dp, c.stroke, RoundedCornerShape(22.dp)),
                 ) {
-                    Canvas(Modifier.matchParentSize()) { drawCubes(cubes, ctx.accent, edge) }
+                    Canvas(Modifier.matchParentSize().semantics { contentDescription = "Würfelfigur $label aus ${cubes.size} Würfeln" }) {
+                        drawCubes(cubes, ctx.accent, edge)
+                    }
                     Text(label, Modifier.align(Alignment.BottomCenter), style = MaterialTheme.typography.labelSmall, color = c.textMuted)
                 }
             }
@@ -147,7 +152,9 @@ fun RotationTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
 
 @Composable
 fun AnagramTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
-    val task = remember { AnagramGen.generate(ctx.level, ctx.rng()) }
+    val task = remember {
+        AnagramGen.generate(ctx.level, ctx.rng(), Repo.recent("anagramm")).also { Repo.markRecent("anagramm", it.word, keep = 120) }
+    }
     val letters = remember { mutableStateListOf<Char>().apply { addAll(task.letters) } }
     val used = remember { mutableStateListOf<Int>() } // Indizes in letters, in Eingabereihenfolge
     var attempts by remember { mutableIntStateOf(0) }
@@ -244,7 +251,10 @@ fun AnagramTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
 
 @Composable
 fun OddOneTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
-    val task = remember { OddOneGen.generate(ctx.level, ctx.rng()) }
+    val task = remember {
+        OddOneGen.generate(ctx.level, ctx.rng(), Repo.recent("oberbegriff"))
+            .also { t -> Repo.markRecent("oberbegriff", t.words[t.oddIndex], keep = 120) }
+    }
     val start = remember { now() }
     val once = remember { OnceReporter(onResult) }
     var picked by remember { mutableIntStateOf(-1) }

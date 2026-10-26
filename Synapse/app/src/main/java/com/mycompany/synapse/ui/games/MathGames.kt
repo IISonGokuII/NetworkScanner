@@ -52,7 +52,7 @@ fun BlitzTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
     val start = remember { now() }
     val once = remember { OnceReporter(onResult) }
     fun finish(ok: Boolean) = once.report(
-        if (ok) TrialResult.right(since(start)) else TrialResult.wrong(since(start), "${task.text} = ${task.answer}")
+        if (ok) TrialResult.right(since(start), task.kind) else TrialResult.wrong(since(start), "${task.text} = ${task.answer}", task.kind)
     )
     TrialLayout {
         Spacer(Modifier.weight(1f))

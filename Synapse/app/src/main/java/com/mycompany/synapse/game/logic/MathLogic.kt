@@ -15,76 +15,86 @@ const val MINUS = "−"
 
 // ---------------------------------------------------------------- Blitzrechnen
 
-data class ArithmeticTask(val text: String, val answer: Int)
+data class ArithmeticTask(val text: String, val answer: Int, val kind: String = "")
 
 object ArithmeticGen {
-    fun generate(level: Int, rng: Random): ArithmeticTask {
+    private class Kind(val minLevel: Int, val name: String, val build: (Int, Random) -> Pair<String, Int>)
+
+    private val kinds = listOf(
+        Kind(1, "Addition") { l, r ->
+            val max = 10 + l * 4
+            val a = r.range(1, max)
+            val b = r.range(1, max)
+            "$a + $b" to a + b
+        },
+        Kind(1, "Subtraktion") { l, r ->
+            val max = 10 + l * 4
+            val a = r.range(2, max)
+            val b = r.range(1, a)
+            "$a $MINUS $b" to a - b
+        },
+        Kind(6, "Einmaleins") { l, r ->
+            val a = r.range(2, minOf(4 + l / 2, 15))
+            val b = r.range(2, 10 + l / 10)
+            "$a × $b" to a * b
+        },
+        Kind(12, "Division") { l, r ->
+            val b = r.range(2, 10 + l / 10)
+            val q = r.range(2, 9 + l / 4)
+            "${b * q} ÷ $b" to q
+        },
+        Kind(20, "Punkt vor Strich") { l, r ->
+            val b = r.range(2, 9)
+            val c = r.range(2, 9 + l / 10)
+            val a = r.range(1, 20 + l)
+            if (r.nextBoolean()) "$a + $b × $c" to a + b * c else "$b × $c + $a" to b * c + a
+        },
+        Kind(24, "Klammern") { _, r ->
+            val a = r.range(2, 9)
+            val b = r.range(2, 9)
+            val c = r.range(2, 6)
+            "($a + $b) × $c" to (a + b) * c
+        },
+        Kind(26, "Zweistellig × einstellig") { l, r ->
+            val a = r.range(12, 39 + l)
+            val b = r.range(3, 9)
+            "$a × $b" to a * b
+        },
+        Kind(30, "Prozent") { _, r ->
+            val p = listOf(10, 20, 25, 50, 75)[r.nextInt(5)]
+            val base = r.range(2, 20) * 20
+            "$p % von $base" to base * p / 100
+        },
+        Kind(32, "Quadratzahlen") { _, r ->
+            val a = r.range(11, 25)
+            "$a²" to a * a
+        },
+        Kind(36, "Zweistellig × zweistellig") { l, r ->
+            val a = r.range(11, 30 + l / 2)
+            val b = r.range(11, 19 + l / 5)
+            "$a × $b" to a * b
+        },
+        Kind(40, "Dreistellig ± dreistellig") { _, r ->
+            val a = r.range(150, 999)
+            val b = r.range(100, a)
+            if (r.nextBoolean()) "$a + $b" to a + b else "$a $MINUS $b" to a - b
+        },
+        Kind(44, "Schwierige Prozente") { _, r ->
+            val p = listOf(5, 15, 30, 40, 60)[r.nextInt(5)]
+            val base = r.range(2, 30) * 20
+            "$p % von $base" to base * p / 100
+        },
+    )
+
+    val kindNames: List<String> get() = kinds.map { it.name }
+
+    /** [only]: nur dieser Aufgabentyp (Schwächen-Training), unabhängig von der Freischalt-Stufe. */
+    fun generate(level: Int, rng: Random, only: String? = null): ArithmeticTask {
         val l = level.coerceIn(1, 50)
-        val addMax = 10 + l * 4
-        val kinds = mutableListOf<() -> ArithmeticTask>()
-        kinds += {
-            val a = rng.range(1, addMax)
-            val b = rng.range(1, addMax)
-            ArithmeticTask("$a + $b", a + b)
-        }
-        kinds += {
-            val a = rng.range(2, addMax)
-            val b = rng.range(1, a)
-            ArithmeticTask("$a $MINUS $b", a - b)
-        }
-        if (l >= 6) kinds += {
-            val a = rng.range(2, minOf(4 + l / 2, 15))
-            val b = rng.range(2, 10 + l / 10)
-            ArithmeticTask("$a × $b", a * b)
-        }
-        if (l >= 12) kinds += {
-            val b = rng.range(2, 10 + l / 10)
-            val q = rng.range(2, 9 + l / 4)
-            ArithmeticTask("${b * q} ÷ $b", q)
-        }
-        if (l >= 20) kinds += {
-            val b = rng.range(2, 9)
-            val c = rng.range(2, 9 + l / 10)
-            val a = rng.range(1, 20 + l)
-            if (rng.nextBoolean()) ArithmeticTask("$a + $b × $c", a + b * c)
-            else ArithmeticTask("$b × $c + $a", b * c + a)
-        }
-        if (l >= 24) kinds += {
-            val a = rng.range(2, 9)
-            val b = rng.range(2, 9)
-            val c = rng.range(2, 6)
-            ArithmeticTask("($a + $b) × $c", (a + b) * c)
-        }
-        if (l >= 26) kinds += {
-            val a = rng.range(12, 39 + l)
-            val b = rng.range(3, 9)
-            ArithmeticTask("$a × $b", a * b)
-        }
-        if (l >= 30) kinds += {
-            val p = listOf(10, 20, 25, 50, 75)[rng.nextInt(5)]
-            val base = rng.range(2, 20) * 20
-            ArithmeticTask("$p % von $base", base * p / 100)
-        }
-        if (l >= 32) kinds += {
-            val a = rng.range(11, 25)
-            ArithmeticTask("$a²", a * a)
-        }
-        if (l >= 36) kinds += {
-            val a = rng.range(11, 30 + l / 2)
-            val b = rng.range(11, 19 + l / 5)
-            ArithmeticTask("$a × $b", a * b)
-        }
-        if (l >= 40) kinds += {
-            val a = rng.range(150, 999)
-            val b = rng.range(100, a)
-            if (rng.nextBoolean()) ArithmeticTask("$a + $b", a + b) else ArithmeticTask("$a $MINUS $b", a - b)
-        }
-        if (l >= 44) kinds += {
-            val p = listOf(5, 15, 30, 40, 60)[rng.nextInt(5)]
-            val base = rng.range(2, 30) * 20
-            ArithmeticTask("$p % von $base", base * p / 100)
-        }
-        return rng.pickFavoringNewest(kinds)()
+        val kind = if (only != null) kinds.firstOrNull { it.name == only } ?: kinds.first()
+        else rng.pickFavoringNewest(kinds.filter { it.minLevel <= l })
+        val (text, answer) = kind.build(l, rng)
+        return ArithmeticTask(text, answer, kind.name)
     }
 
     fun label(level: Int): String = when {
@@ -237,10 +247,10 @@ object DuelGen {
     }
 
     /** Farbwort-Duell: Schriftfarbe antippen. Farben-Index wie StroopGen.NAMES. */
-    fun stroop(rng: Random): DuelTask {
+    fun stroop(rng: Random, names: List<String> = StroopGen.NAMES): DuelTask {
         val word = rng.nextInt(4)
         val ink = if (rng.nextDouble() < 0.8) (word + 1 + rng.nextInt(3)) % 4 else word
         val order = (0 until 4).shuffled(rng)
-        return DuelTask(StroopGen.NAMES[word], ink, order.map { StroopGen.NAMES[it] }, order.indexOf(ink))
+        return DuelTask(names[word], ink, order.map { names[it] }, order.indexOf(ink))
     }
 }

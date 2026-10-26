@@ -86,9 +86,26 @@ fun ProgressScreen(nav: Navigator) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             HeroIndex(timeline.lastOrNull()?.overall ?: 0, timeline.firstOrNull()?.overall ?: 0, timeline, today)
+            if (Repo.pendingDomains.isNotEmpty()) {
+                Text(
+                    "In Einstufung: ${Repo.pendingDomains.joinToString { it.title }} – zählt ab der zweiten Runde (oder nach dem Einstufungstest) zum Index.",
+                    style = MaterialTheme.typography.labelMedium, color = c.textMuted, modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+            BenchmarkSection(nav)
             IndexHistory(timeline, today)
             ProfileRadar(timeline, today)
             WeekCompare(today)
+            val lastWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(1)
+            GlassCard(Modifier.fillMaxWidth(), onClick = { nav.push(Screen.WeekReviewScreen(lastWeek.toEpochDay())) }, padding = 14.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Wochenrückblick", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                        Text(weekLabel(lastWeek), style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
+                    }
+                    Text("Ansehen ›", style = MaterialTheme.typography.labelLarge, color = c.domain(Domain.RECHNEN))
+                }
+            }
             SectionTitle("Trainingskalender")
             GlassCard(Modifier.fillMaxWidth()) {
                 val minutes = remember(records) { Stats.minutesPerDay(records) }
@@ -467,3 +484,50 @@ private fun dailyLast(list: List<com.mycompany.synapse.data.SessionRecord>, f: (
 
 private fun dailyAvg(list: List<com.mycompany.synapse.data.SessionRecord>, f: (com.mycompany.synapse.data.SessionRecord) -> Float) =
     list.groupBy { it.day() }.toSortedMap().map { (d, l) -> ChartPoint(d, l.map(f).average().toFloat()) }
+
+@Composable
+private fun BenchmarkSection(nav: Navigator) {
+    val c = Synapse.colors
+    val runs = Repo.benchmarkRuns
+    val accent = c.domain(Domain.RECHNEN)
+    SectionTitle("Leistungstest")
+    GlassCard(Modifier.fillMaxWidth(), accent = accent) {
+        if (runs.isEmpty()) {
+            Text(
+                "Der Leistungstest misst dich immer mit derselben Schwierigkeit. Mach ihn einmal im Monat – " +
+                    "dann siehst du schwarz auf weiß, ob du wirklich besser wirst.",
+                style = MaterialTheme.typography.bodyMedium, color = c.textSecondary,
+            )
+        } else {
+            val first = runs.first()
+            val last = runs.last()
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("${last.total}", style = MaterialTheme.typography.displayMedium, color = c.textPrimary)
+                Spacer(Modifier.width(8.dp))
+                Text("von 100", style = MaterialTheme.typography.bodyMedium, color = c.textMuted, modifier = Modifier.padding(bottom = 8.dp))
+                Spacer(Modifier.weight(1f))
+                if (runs.size > 1) {
+                    val d = last.total - first.total
+                    Text(
+                        (if (d >= 0) "▲ +$d" else "▼ $d") + " seit dem ersten Test",
+                        color = if (d >= 0) c.good else c.bad, style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
+            }
+            Text("${runs.size} Test${if (runs.size > 1) "s" else ""} · zuletzt ${relativeDay(last.run)}", style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
+            if (runs.size > 1) {
+                Spacer(Modifier.height(8.dp))
+                val zone = java.time.ZoneId.systemDefault()
+                LineChart(
+                    runs.map { ChartPoint(java.time.Instant.ofEpochMilli(it.run).atZone(zone).toLocalDate(), it.total.toFloat()) },
+                    accent, height = 150, fixedMin = 0f, fixedMax = 100f, ticks = 4,
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        PrimaryButton(
+            if (Repo.benchmarkDue()) "Test starten (fällig)" else "Test starten", Modifier.fillMaxWidth(), color = accent,
+        ) { nav.push(Screen.Test(Repo.KIND_BENCHMARK)) }
+    }
+}

@@ -50,17 +50,23 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun StroopTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
-    val task = remember { StroopGen.generate(ctx.level, ctx.rng()) }
+    val c = Synapse.colors
+    val names = c.stroopNames
+    val task = remember { StroopGen.generate(ctx.level, ctx.rng(), names.size) }
     val start = remember { now() }
     val once = remember { OnceReporter(onResult) }
-    val c = Synapse.colors
+    val tag = when {
+        task.askWord -> "Regelwechsel"
+        task.word == task.ink -> "Kongruent"
+        else -> "Inkongruent"
+    }
     val limit = if (ctx.zen) null else task.timeLimitMs
     val timeLeft = remember { Animatable(1f) }
-    val solution = "Richtig: ${StroopGen.NAMES[task.answer]}"
+    val solution = "Richtig: ${names[task.answer]}"
     LaunchedEffect(Unit) {
         if (limit != null) {
             timeLeft.animateTo(0f, tween(limit.toInt(), easing = LinearEasing))
-            once.report(TrialResult.wrong(since(start), "Zu langsam – $solution"))
+            once.report(TrialResult.wrong(since(start), "Zu langsam – $solution", tag))
         }
     }
     TrialLayout {
@@ -78,7 +84,7 @@ fun StroopTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
         }
         Spacer(Modifier.weight(1f))
         Text(
-            StroopGen.NAMES[task.word], color = c.stroopColors[task.ink],
+            names[task.word], color = c.stroopColors[task.ink],
             fontSize = 64.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp,
         )
         Spacer(Modifier.weight(1f))
@@ -87,9 +93,9 @@ fun StroopTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
                 for (o in row) {
                     ChoiceButton(Modifier.weight(1f), accent = ctx.accent, height = 70.dp, onClick = {
                         once.report(
-                            if (o == task.answer) TrialResult.right(since(start)) else TrialResult.wrong(since(start), solution)
+                            if (o == task.answer) TrialResult.right(since(start), tag) else TrialResult.wrong(since(start), solution, tag)
                         )
-                    }) { ChoiceText(StroopGen.NAMES[o]) }
+                    }) { ChoiceText(names[o]) }
                 }
                 if (task.options.size > 4 && row.size < 3) repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }

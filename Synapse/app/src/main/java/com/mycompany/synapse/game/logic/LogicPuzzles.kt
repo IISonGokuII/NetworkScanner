@@ -4,32 +4,32 @@ import kotlin.random.Random
 
 // ---------------------------------------------------------------- Zahlenfolgen
 
-data class SequenceTask(val shown: List<Long>, val answer: Long, val rule: String)
+data class SequenceTask(val shown: List<Long>, val answer: Long, val rule: String, val kind: String = "")
 
 object SequenceGen {
     private const val LIMIT = 99_999L
 
-    private class Kind(val minLevel: Int, val build: (Int, Random) -> Pair<List<Long>, String>?)
+    private class Kind(val minLevel: Int, val name: String, val build: (Int, Random) -> Pair<List<Long>, String>?)
 
     private fun arith(start: Long, d: Long, n: Int) = List(n) { start + d * it }
 
     private val primes = listOf(2L, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113)
 
     private val kinds = listOf(
-        Kind(1) { l, r ->
+        Kind(1, "Plus-Folge") { l, r ->
             val d = r.range(1, 3 + l / 3).toLong()
             arith(r.range(1, 20).toLong(), d, 6) to "immer +$d"
         },
-        Kind(4) { l, r ->
+        Kind(4, "Minus-Folge") { l, r ->
             val d = r.range(2, 4 + l / 3).toLong()
             val start = d * 7 + r.range(0, 30)
             arith(start, -d, 6) to "immer $MINUS$d"
         },
-        Kind(6) { _, r ->
+        Kind(6, "Verdopplung") { _, r ->
             val s = r.range(1, 6).toLong()
             List(6) { s shl it } to "immer ×2"
         },
-        Kind(9) { l, r ->
+        Kind(9, "Wechsel-Abstände") { l, r ->
             val a = r.range(1, 4 + l / 5)
             var b = r.range(1, 6 + l / 5)
             if (b == a) b += 2
@@ -38,11 +38,19 @@ object SequenceGen {
             repeat(7) { i -> list += v; v += if (i % 2 == 0) a else b }
             list to "abwechselnd +$a und +$b"
         },
-        Kind(11) { _, r ->
+        Kind(11, "Quadratzahlen") { _, r ->
             val k = r.range(1, 6)
             List(6) { ((k + it) * (k + it)).toLong() } to "Quadratzahlen"
         },
-        Kind(14) { l, r ->
+        Kind(13, "Plus/Minus im Wechsel") { l, r ->
+            val a = r.range(3, 6 + l / 6)
+            val b = r.range(1, a - 1)
+            var v = r.range(5, 20).toLong()
+            val list = mutableListOf<Long>()
+            repeat(7) { i -> list += v; v = if (i % 2 == 0) v + a else v - b }
+            list to "abwechselnd +$a und $MINUS$b"
+        },
+        Kind(14, "Wachsende Abstände") { l, r ->
             val d = r.range(1, 5).toLong()
             val c = r.range(1, 2 + l / 15).toLong()
             var v = r.range(1, 12).toLong()
@@ -51,18 +59,22 @@ object SequenceGen {
             repeat(6) { list += v; v += step; step += c }
             list to "Abstand wächst jeweils um $c"
         },
-        Kind(16) { _, r ->
+        Kind(16, "Verdreifachung") { _, r ->
             val s = r.range(1, 4).toLong()
             List(6) { var x = s; repeat(it) { x *= 3 }; x } to "immer ×3"
         },
-        Kind(19) { _, r ->
+        Kind(19, "Fibonacci") { _, r ->
             var a = r.range(1, 5).toLong()
             var b = r.range(a.toInt(), 8).toLong()
             val list = mutableListOf(a, b)
             repeat(5) { val c = a + b; list += c; a = b; b = c }
             list to "Summe der beiden Vorgänger"
         },
-        Kind(23) { _, r ->
+        Kind(21, "Rechteckzahlen") { _, r ->
+            val k = r.range(1, 5)
+            List(6) { val n = (k + it).toLong(); n * (n + 1) } to "n · (n + 1)"
+        },
+        Kind(23, "Gemischte Rechenarten") { _, r ->
             val a = r.range(1, 6)
             val m = r.range(2, 3)
             var v = r.range(1, 6).toLong()
@@ -70,7 +82,7 @@ object SequenceGen {
             repeat(7) { i -> list += v; v = if (i % 2 == 0) v + a else v * m }
             list to "abwechselnd +$a und ×$m"
         },
-        Kind(26) { l, r ->
+        Kind(26, "Verschränkte Folgen") { l, r ->
             val a = r.range(2, 5 + l / 10)
             val b = r.range(1, 4)
             var x = r.range(1, 10).toLong()
@@ -79,7 +91,11 @@ object SequenceGen {
             repeat(4) { list += x; list += y; x += a; y -= b }
             list.take(8) to "zwei Folgen ineinander: +$a und $MINUS$b"
         },
-        Kind(29) { _, r ->
+        Kind(27, "Dreieckszahlen") { _, r ->
+            val k = r.range(1, 6)
+            List(6) { val n = (k + it).toLong(); n * (n + 1) / 2 } to "Dreieckszahlen (Abstand wächst um 1)"
+        },
+        Kind(29, "×2 ± c") { _, r ->
             val c = r.range(1, 3).toLong()
             val plus = r.nextBoolean()
             var v = r.range(2, 6).toLong()
@@ -87,18 +103,29 @@ object SequenceGen {
             repeat(6) { list += v; v = if (plus) v * 2 + c else v * 2 - c }
             list to if (plus) "×2, dann +$c" else "×2, dann $MINUS$c"
         },
-        Kind(32) { _, r ->
+        Kind(31, "×2 und ×3 im Wechsel") { _, r ->
+            var v = r.range(1, 4).toLong()
+            val list = mutableListOf<Long>()
+            repeat(7) { i -> list += v; v *= if (i % 2 == 0) 2 else 3 }
+            list to "abwechselnd ×2 und ×3"
+        },
+        Kind(32, "Quadrat ± c") { _, r ->
             val k = r.range(1, 5)
             val c = r.range(1, 5).toLong()
             val plus = r.nextBoolean()
             List(6) { val q = ((k + it) * (k + it)).toLong(); if (plus) q + c else q - c } to
                 if (plus) "Quadratzahl +$c" else "Quadratzahl $MINUS$c"
         },
-        Kind(35) { _, r ->
+        Kind(34, "Tribonacci") { _, r ->
+            val list = mutableListOf(r.range(0, 2).toLong(), r.range(1, 2).toLong(), r.range(1, 3).toLong())
+            repeat(4) { list += list[list.size - 1] + list[list.size - 2] + list[list.size - 3] }
+            list to "Summe der drei Vorgänger"
+        },
+        Kind(35, "Kubikzahlen") { _, r ->
             val k = r.range(1, 4)
             List(6) { val x = (k + it).toLong(); x * x * x } to "Kubikzahlen (n³)"
         },
-        Kind(38) { _, r ->
+        Kind(38, "Abstand verdoppelt") { _, r ->
             val d = r.range(1, 3).toLong()
             var v = r.range(1, 10).toLong()
             var step = d
@@ -106,17 +133,37 @@ object SequenceGen {
             repeat(6) { list += v; v += step; step *= 2 }
             list to "Abstand verdoppelt sich"
         },
-        Kind(41) { _, r ->
+        Kind(39, "Quadratische Abstände") { _, r ->
+            var v = r.range(1, 10).toLong()
+            val list = mutableListOf<Long>()
+            for (n in 1..7) { list += v; v += (n * n).toLong() }
+            list to "Abstände sind Quadratzahlen 1, 4, 9, …"
+        },
+        Kind(41, "Primzahlen") { _, r ->
             val off = r.range(0, primes.size - 7)
             primes.subList(off, off + 7) to "Primzahlen"
         },
-        Kind(44) { _, r ->
+        Kind(42, "Zweierpotenzen ± k") { _, r ->
+            val k = r.range(1, 5).toLong()
+            val plus = r.nextBoolean()
+            val start = r.range(1, 3)
+            List(6) { val p2 = 1L shl (start + it); if (plus) p2 + k else p2 - k } to
+                if (plus) "Zweierpotenzen +$k" else "Zweierpotenzen $MINUS$k"
+        },
+        Kind(44, "×k − m") { _, r ->
             val k = r.range(2, 3)
             val m = r.range(1, 4).toLong()
             var v = r.range(2, 5).toLong()
             val list = mutableListOf<Long>()
             repeat(6) { list += v; v = v * k - m }
             list to "×$k, dann $MINUS$m"
+        },
+        Kind(47, "Verschränkt ×2 und +3") { _, r ->
+            var x = r.range(1, 4).toLong()
+            var y = r.range(2, 9).toLong()
+            val list = mutableListOf<Long>()
+            repeat(4) { list += x; list += y; x *= 2; y += 3 }
+            list.take(8) to "zwei Folgen ineinander: ×2 und +3"
         },
     )
 
@@ -131,16 +178,15 @@ object SequenceGen {
             val shown = seq.take(shownCount)
             val answer = seq[shownCount]
             if (answer < 0 || answer > LIMIT || shown.any { it < 0 || it > LIMIT }) return@repeat
-            return SequenceTask(shown, answer, rule)
+            return SequenceTask(shown, answer, rule, kind.name)
         }
-        return SequenceTask(listOf(2, 4, 6, 8, 10), 12, "immer +2")
+        return SequenceTask(listOf(2, 4, 6, 8, 10), 12, "immer +2", "Plus-Folge")
     }
 
     fun label(level: Int): String {
-        val names = listOf("+d", "−d", "×2", "Wechsel", "Quadrate", "wachsende Abstände", "×3", "Fibonacci",
-            "Mischregeln", "verschachtelt", "×2±c", "Quadrat±c", "Kubik", "Verdopplung", "Primzahlen", "×k−m")
-        val count = kinds.count { it.minLevel <= level }
-        return (if (count == 1) "1 Regeltyp" else "$count Regeltypen") + " · neu: ${names[count - 1]}"
+        val unlocked = kinds.filter { it.minLevel <= level }
+        val count = unlocked.size
+        return (if (count == 1) "1 Regeltyp" else "$count Regeltypen") + " · neu: ${unlocked.last().name}"
     }
 }
 
@@ -255,7 +301,7 @@ object MatrixGen {
 
 // ---------------------------------------------------------------- Schlussfolgern
 
-data class SyllogismTask(val premises: List<String>, val conclusion: String, val valid: Boolean, val explanation: String)
+data class SyllogismTask(val premises: List<String>, val conclusion: String, val valid: Boolean, val explanation: String, val type: String = "")
 
 object SyllogismGen {
     private val names = listOf("Anna", "Ben", "Clara", "David", "Emil", "Frida", "Greta", "Hugo", "Ida", "Jonas")
@@ -305,7 +351,7 @@ object SyllogismGen {
         val conclusion = if (useMore) "${order[i]} ist $more als ${order[j]}." else "${order[i]} ist $less als ${order[j]}."
         val valid = if (useMore) i < j else i > j
         val chain = order.joinToString(" > ")
-        return SyllogismTask(premises, conclusion, valid, "Reihenfolge ($more): $chain")
+        return SyllogismTask(premises, conclusion, valid, "Reihenfolge ($more): $chain", "Vergleiche")
     }
 
     private data class Form(val p1: String, val p2: String, val c: String, val valid: Boolean, val why: String)
@@ -330,7 +376,7 @@ object SyllogismGen {
         val (a, b, c) = terms.shuffled(rng).take(3)
         fun fill(s: String) = s.replace("{A}", a).replace("{B}", b).replace("{C}", c)
         val premises = listOf(fill(form.p1), fill(form.p2)).shuffled(rng)
-        return SyllogismTask(premises, fill(form.c), form.valid, fill(form.why))
+        return SyllogismTask(premises, fill(form.c), form.valid, fill(form.why), "Mengenlogik")
     }
 
     private data class Scenario(val pSub: String, val p: String, val notP: String, val qInv: String, val q: String, val notQ: String)
@@ -350,10 +396,10 @@ object SyllogismGen {
         val s = scenarios[rng.nextInt(scenarios.size)]
         val rule = "Wenn ${s.pSub}, dann ${s.qInv}."
         return when (rng.nextInt(4)) {
-            0 -> SyllogismTask(listOf(rule, s.p), s.q, true, "Zwingend: die Bedingung ist erfüllt, also tritt die Folge ein.")
-            1 -> SyllogismTask(listOf(rule, s.notQ), s.notP, true, "Zwingend: wäre die Bedingung erfüllt, müsste die Folge eintreten.")
-            2 -> SyllogismTask(listOf(rule, s.q), s.p, false, "Nicht zwingend: die Folge kann auch andere Gründe haben.")
-            else -> SyllogismTask(listOf(rule, s.notP), s.notQ, false, "Nicht zwingend: über den Fall ohne Bedingung sagt die Regel nichts.")
+            0 -> SyllogismTask(listOf(rule, s.p), s.q, true, "Zwingend: die Bedingung ist erfüllt, also tritt die Folge ein.", "Wenn-dann")
+            1 -> SyllogismTask(listOf(rule, s.notQ), s.notP, true, "Zwingend: wäre die Bedingung erfüllt, müsste die Folge eintreten.", "Wenn-dann")
+            2 -> SyllogismTask(listOf(rule, s.q), s.p, false, "Nicht zwingend: die Folge kann auch andere Gründe haben.", "Wenn-dann")
+            else -> SyllogismTask(listOf(rule, s.notP), s.notQ, false, "Nicht zwingend: über den Fall ohne Bedingung sagt die Regel nichts.", "Wenn-dann")
         }
     }
 

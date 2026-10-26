@@ -19,15 +19,27 @@ sealed interface Screen {
     val isTab: Boolean get() = false
 
     data object Home : Screen { override val isTab = true }
+    data object Learn : Screen { override val isTab = true }
     data object Progress : Screen { override val isTab = true }
     data object Awards : Screen { override val isTab = true }
     data object More : Screen { override val isTab = true }
     data class DomainDetail(val domain: Domain) : Screen
     data object AllGames : Screen
-    data class Play(val gameId: String, val workout: WorkoutRun? = null, val presetMode: GameMode? = null, val nonce: Long = System.nanoTime()) : Screen
+    data class Play(
+        val gameId: String,
+        val workout: WorkoutRun? = null,
+        val presetMode: GameMode? = null,
+        val resume: ResumeState? = null,
+        val nonce: Long = System.nanoTime(),
+    ) : Screen
     data class GameStats(val gameId: String) : Screen
     data class WorkoutDone(val entries: List<WorkoutEntry>) : Screen
     data object Duel : Screen
+    data class LessonDetail(val lessonId: String) : Screen
+    data class Drill(val drillId: String, val nonce: Long = System.nanoTime()) : Screen
+    data class Test(val kind: String) : Screen
+    data class WeekReviewScreen(val weekStartEpochDay: Long) : Screen
+    data object Profiles : Screen
 }
 
 class Navigator {
@@ -63,4 +75,9 @@ class Navigator {
     }
 
     fun home() = tab(Screen.Home)
+}
+
+/** Ziel aus einer Benachrichtigung, das beim nächsten Frame geöffnet wird. */
+object DeepLink {
+    var pending by mutableStateOf<Screen?>(null)
 }

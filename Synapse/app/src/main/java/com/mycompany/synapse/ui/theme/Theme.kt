@@ -34,11 +34,23 @@ data class Palette(
     private val domains: List<Color>,
     /** Spielfarben (Matrix, Waage, Schulte) – gut unterscheidbar. */
     val gameColors: List<Color>,
-    /** Stroop-Farben in Reihenfolge ROT, BLAU, GRÜN, GELB, LILA. */
+    /** Stroop-Farben passend zu [stroopNames]. */
     val stroopColors: List<Color>,
     val heatRamp: List<Color>,
+    val stroopNames: List<String> = listOf("ROT", "BLAU", "GRÜN", "GELB", "LILA"),
 ) {
     fun domain(d: Domain): Color = domains[d.ordinal]
+
+    /** Farbschwäche-Modus: Farben, die auch bei Rot-Grün-Schwäche klar unterscheidbar sind (geprüft). */
+    fun colorblindSafe(): Palette = if (dark) copy(
+        stroopNames = listOf("BLAU", "ORANGE", "GELB", "WEISS", "LILA"),
+        stroopColors = listOf(Color(0xFF60A5FA), Color(0xFFF97316), Color(0xFFFDE047), Color(0xFFE5E7EB), Color(0xFFA855F7)),
+        gameColors = listOf(Color(0xFF60A5FA), Color(0xFFF97316), Color(0xFFFDE047), Color(0xFFE5E7EB), Color(0xFFA855F7), Color(0xFF94A3B8)),
+    ) else copy(
+        stroopNames = listOf("BLAU", "ORANGE", "SCHWARZ", "LILA"),
+        stroopColors = listOf(Color(0xFF1D4ED8), Color(0xFFEA580C), Color(0xFF111827), Color(0xFFA855F7)),
+        gameColors = listOf(Color(0xFF1D4ED8), Color(0xFFEA580C), Color(0xFF111827), Color(0xFFA855F7), Color(0xFFCA8A04), Color(0xFF64748B)),
+    )
 }
 
 val DarkPalette = Palette(
@@ -114,8 +126,9 @@ private val AppTypography = Typography(
 )
 
 @Composable
-fun SynapseTheme(dark: Boolean, content: @Composable () -> Unit) {
-    val palette = if (dark) DarkPalette else LightPalette
+fun SynapseTheme(dark: Boolean, colorblind: Boolean = false, content: @Composable () -> Unit) {
+    val base = if (dark) DarkPalette else LightPalette
+    val palette = if (colorblind) base.colorblindSafe() else base
     val scheme = if (dark) darkColorScheme(
         primary = palette.domain(Domain.RECHNEN),
         secondary = palette.domain(Domain.LOGIK),

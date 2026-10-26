@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -56,6 +57,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,6 +97,16 @@ fun AppBackground(content: @Composable BoxScope.() -> Unit) {
             },
         content = content,
     )
+}
+
+/** Bewegung reduzieren: eigene Einstellung oder Android „Animationen entfernen“. */
+@Composable
+fun reducedMotion(): Boolean {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val system = remember {
+        android.provider.Settings.Global.getFloat(ctx.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
+    return com.mycompany.synapse.data.Repo.reduceMotion || system
 }
 
 /** Leichtes Eindrücken beim Antippen – Buttons fühlen sich „physisch“ an. */
@@ -473,7 +486,7 @@ fun PadKey(label: String, accent: Color, highlight: Boolean, modifier: Modifier 
     val shape = RoundedCornerShape(18.dp)
     Box(
         modifier
-            .height(height)
+            .heightIn(min = height)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(shape)
             .background(if (highlight) accent.copy(alpha = 0.28f) else c.surface)
@@ -481,7 +494,16 @@ fun PadKey(label: String, accent: Color, highlight: Boolean, modifier: Modifier 
             .clickable(interaction, indication = androidx.compose.material3.ripple(color = accent), onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = c.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(
+            label, color = c.textPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.semantics {
+                contentDescription = when (label) {
+                    "⌫" -> "Löschen"
+                    "✓" -> "Bestätigen"
+                    else -> label
+                }
+            },
+        )
     }
 }
 
@@ -513,7 +535,7 @@ fun ChoiceButton(
     }
     Box(
         modifier
-            .height(height)
+            .heightIn(min = height)
             .graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (state == ChoiceState.DIMMED) 0.5f else 1f }
             .clip(shape)
             .background(bg)
@@ -540,7 +562,7 @@ fun AnswerDisplay(text: String, accent: Color, modifier: Modifier = Modifier, pl
     Box(
         modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .heightIn(min = 72.dp)
             .clip(shape)
             .background(c.surface)
             .border(1.5.dp, accent.copy(alpha = if (text.isEmpty()) 0.3f else 0.8f), shape),

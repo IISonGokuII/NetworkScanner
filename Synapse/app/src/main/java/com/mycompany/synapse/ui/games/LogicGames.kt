@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -72,7 +74,7 @@ fun SequenceTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
     val once = remember { OnceReporter(onResult) }
     val c = Synapse.colors
     fun finish(ok: Boolean) = once.report(
-        if (ok) TrialResult.right(since(start)) else TrialResult.wrong(since(start), "${task.answer} – ${task.rule}")
+        if (ok) TrialResult.right(since(start), task.kind) else TrialResult.wrong(since(start), "${task.answer} – ${task.rule}", task.kind)
     )
     val items = task.shown.map { it.toString() } + "?"
     TrialLayout {
@@ -200,7 +202,9 @@ fun MatrixTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
                             )
                         },
                     ) {
-                        Canvas(Modifier.fillMaxSize().padding(8.dp)) { drawMatrixCell(task, task.options[i], c.gameColors) }
+                        Canvas(Modifier.fillMaxSize().padding(8.dp).semantics { contentDescription = "Antwort ${i + 1}" }) {
+                            drawMatrixCell(task, task.options[i], c.gameColors)
+                        }
                     }
                 }
             }
@@ -289,8 +293,8 @@ fun SyllogismTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
     val once = remember { OnceReporter(onResult) }
     val c = Synapse.colors
     fun decide(yes: Boolean) = once.report(
-        if (yes == task.valid) TrialResult.right(since(start))
-        else TrialResult.wrong(since(start), (if (task.valid) "Ja – " else "Nein – ") + task.explanation)
+        if (yes == task.valid) TrialResult.right(since(start), task.type)
+        else TrialResult.wrong(since(start), (if (task.valid) "Ja – " else "Nein – ") + task.explanation, task.type)
     )
     TrialLayout {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -362,6 +366,7 @@ fun BalanceTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
                             .height(124.dp)
                             .clip(RoundedCornerShape(18.dp))
                             .background(c.surface)
+                            .semantics { contentDescription = "Waage: ${SHAPE_NAMES[heavy]} ist schwerer als ${SHAPE_NAMES[light]}" }
                     ) { drawScale(heavy, light, task.heavyOnLeft[i], c.gameColors, c.textSecondary) }
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
@@ -393,7 +398,7 @@ fun BalanceTrial(ctx: TrialContext, onResult: (TrialResult) -> Unit) {
                         )
                     },
                 ) {
-                    Canvas(Modifier.fillMaxSize().padding(14.dp)) {
+                    Canvas(Modifier.fillMaxSize().padding(14.dp).semantics { contentDescription = SHAPE_NAMES[obj] }) {
                         drawGameShape(obj, center, size.minDimension, c.gameColors[obj % c.gameColors.size])
                     }
                 }

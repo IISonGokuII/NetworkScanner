@@ -3,6 +3,7 @@ package com.mycompany.synapse.ui.screens
 import android.Manifest
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
@@ -56,10 +57,25 @@ fun MoreScreen(nav: Navigator) {
     var confirmReset by remember { mutableStateOf(false) }
     var pendingImport by remember { mutableStateOf<String?>(null) }
 
+    var permissionFor by remember { mutableStateOf("daily") }
     val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        Repo.setReminder(granted)
+        if (permissionFor == "daily") Repo.setReminder(granted) else Repo.setReviewNotif(granted)
         Reminders.schedule(context)
-        if (!granted) Toast.makeText(context, "Ohne Erlaubnis kann keine Erinnerung angezeigt werden", Toast.LENGTH_LONG).show()
+        if (!granted) Toast.makeText(context, "Ohne Erlaubnis kann keine Benachrichtigung angezeigt werden", Toast.LENGTH_LONG).show()
+    }
+    fun needsPermission() = Build.VERSION.SDK_INT >= 33 &&
+        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    val autoBackupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        }
+        Repo.setAutoBackup(uri.toString())
+        val ok = Repo.writeAutoBackup(context)
+        Toast.makeText(context, if (ok) "Automatische Sicherung eingerichtet" else "Datei nicht beschreibbar", Toast.LENGTH_SHORT).show()
+        if (!ok) Repo.setAutoBackup(null)
     }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -86,6 +102,19 @@ fun MoreScreen(nav: Navigator) {
                 .padding(bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            GlassCard(Modifier.fillMaxWidth(), accent = profileColor(Repo.profile.color), onClick = { nav.push(Screen.Profiles) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ProfileAvatar(Repo.profile)
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Profil: ${Repo.profile.name}", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                        Text(
+                            if (Repo.profiles.size > 1) "${Repo.profiles.size} Profile · tippen zum Wechseln" else "Weitere Profile für Familie oder Freunde anlegen",
+                            style = MaterialTheme.typography.bodyMedium, color = c.textSecondary,
+                        )
+                    }
+                }
+            }
             GlassCard(Modifier.fillMaxWidth(), accent = c.domain(Domain.SPRACHE), onClick = { nav.push(Screen.Duel) }) {
                 Text("Duell-Modus", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
                 Text(
@@ -107,9 +136,31 @@ fun MoreScreen(nav: Navigator) {
             GlassCard(Modifier.fillMaxWidth()) {
                 SettingSwitch("Klänge", "Sanfte Töne bei richtig und falsch", Repo.soundOn) { Repo.setSound(it) }
                 SettingSwitch("Vibration", "Kurzer Impuls als Rückmeldung", Repo.hapticsOn) { Repo.setHaptics(it) }
+                SettingSwitch("Bewegung reduzieren", "Keine Partikel, kein Wackeln, ruhiges Neuronen-Netz", Repo.reduceMotion) { Repo.changeReduceMotion(it) }
+                SettingSwitch("Farbschwäche-Modus", "Farben, die auch bei Rot-Grün-Schwäche unterscheidbar sind (pro Profil)", Repo.cvdMode) { Repo.changeCvdMode(it) }
             }
 
             SectionTitle("Training")
+            GlassCard(Modifier.fillMaxWidth()) {
+                Text("Wochenziel", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Text("An wie vielen Tagen pro Woche willst du trainieren?", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (d in 2..7) SelectChip("$d", Repo.weeklyGoal == d, accent) { Repo.changeWeeklyGoal(d) }
+                }
+            }
+            GlassCard(Modifier.fillMaxWidth(), onClick = { nav.push(Screen.Test(Repo.KIND_PLACEMENT)) }) {
+                Text(if (Repo.placementDone) "Einstufung wiederholen" else "Einstufungstest", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Text("5 Minuten · setzt die Start-Level aller Spiele passend", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+            }
+            GlassCard(Modifier.fillMaxWidth(), onClick = { nav.push(Screen.Test(Repo.KIND_BENCHMARK)) }) {
+                Text("Leistungstest", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Text(
+                    Repo.benchmarkRuns.lastOrNull()?.let { "Zuletzt ${relativeDay(it.run)}: ${it.total} Punkte · empfohlen alle 4 Wochen" }
+                        ?: "Feste Schwierigkeit – zeigt über Monate, ob du besser wirst",
+                    style = MaterialTheme.typography.bodyMedium, color = c.textSecondary,
+                )
+            }
             GlassCard(Modifier.fillMaxWidth()) {
                 Text("Länge des Tagestrainings", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
                 Spacer(Modifier.height(8.dp))
@@ -124,9 +175,8 @@ fun MoreScreen(nav: Navigator) {
                     "Nur wenn du an dem Tag noch nicht trainiert hast",
                     Repo.reminderOn,
                 ) { on ->
-                    if (on && Build.VERSION.SDK_INT >= 33 &&
-                        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                    ) {
+                    if (on && needsPermission()) {
+                        permissionFor = "daily"
                         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                     } else {
                         Repo.setReminder(on)
@@ -141,6 +191,15 @@ fun MoreScreen(nav: Navigator) {
                             Repo.setReminder(true, h, m)
                             Reminders.schedule(context)
                         }
+                    }
+                }
+                SettingSwitch("Wochenrückblick", "Sonntags um 19 Uhr eine kurze Zusammenfassung deiner Woche", Repo.reviewNotifOn) { on ->
+                    if (on && needsPermission()) {
+                        permissionFor = "weekly"
+                        notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        Repo.setReviewNotif(on)
+                        Reminders.schedule(context)
                     }
                 }
             }
@@ -164,7 +223,8 @@ fun MoreScreen(nav: Navigator) {
             SectionTitle("Deine Daten")
             GlassCard(Modifier.fillMaxWidth()) {
                 Text(
-                    "Alles bleibt auf deinem Handy. Mit einer Sicherung kannst du den Fortschritt auf ein neues Gerät mitnehmen.",
+                    "Alles bleibt auf deinem Handy – auch das Android-Cloud-Backup ist abgeschaltet. Mit einer Sicherungsdatei " +
+                        "nimmst du den Fortschritt dieses Profils auf ein neues Gerät mit.",
                     style = MaterialTheme.typography.bodyMedium, color = c.textSecondary,
                 )
                 Spacer(Modifier.height(10.dp))
@@ -175,10 +235,31 @@ fun MoreScreen(nav: Navigator) {
                 Spacer(Modifier.height(10.dp))
                 SecondaryButton("Fortschritt zurücksetzen", Modifier.fillMaxWidth(), color = c.bad) { confirmReset = true }
             }
+            GlassCard(Modifier.fillMaxWidth()) {
+                Text("Automatische Sicherung", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Text(
+                    if (Repo.autoBackupUri == null) "Einmal eine Datei wählen – danach aktualisiert die App sie täglich beim Öffnen. " +
+                        "Liegt die Datei in einem synchronisierten Ordner, ist sie auch außerhalb des Handys sicher."
+                    else "Aktiv · zuletzt: " + if (Repo.autoBackupLast > 0) relativeDay(Repo.autoBackupLast) else "noch nie",
+                    style = MaterialTheme.typography.bodyMedium, color = c.textSecondary,
+                )
+                Spacer(Modifier.height(10.dp))
+                if (Repo.autoBackupUri == null) {
+                    SecondaryButton("Datei wählen", Modifier.fillMaxWidth()) { autoBackupLauncher.launch("synapse-auto-${Repo.profile.name}.json") }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SecondaryButton("Jetzt sichern", Modifier.weight(1f)) {
+                            val ok = Repo.writeAutoBackup(context)
+                            Toast.makeText(context, if (ok) "Gesichert" else "Kein Zugriff mehr – bitte neu einrichten", Toast.LENGTH_SHORT).show()
+                        }
+                        SecondaryButton("Ausschalten", Modifier.weight(1f)) { Repo.setAutoBackup(null) }
+                    }
+                }
+            }
 
             SectionTitle("Über Synapse")
             GlassCard(Modifier.fillMaxWidth()) {
-                Text("Synapse 1.0", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Text("Synapse ${com.mycompany.synapse.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "100 % kostenlos · keine Werbung · kein Konto · keine Tracker.\n" +
@@ -200,7 +281,7 @@ fun MoreScreen(nav: Navigator) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
             title = { Text("Fortschritt löschen?") },
-            text = { Text("Alle Sessions, Level und Erfolge werden gelöscht. Einstellungen bleiben erhalten. Das kann nicht rückgängig gemacht werden.") },
+            text = { Text("Alle Sessions, Level, Erfolge und Tests des Profils „${Repo.profile.name}“ werden gelöscht. Einstellungen bleiben erhalten. Das kann nicht rückgängig gemacht werden.") },
             confirmButton = {
                 TextButton(onClick = { Repo.resetProgress(); confirmReset = false }) { Text("Löschen", color = c.bad) }
             },
@@ -212,7 +293,7 @@ fun MoreScreen(nav: Navigator) {
         AlertDialog(
             onDismissRequest = { pendingImport = null },
             title = { Text("Sicherung wiederherstellen?") },
-            text = { Text("Der aktuelle Fortschritt wird durch die Sicherung ersetzt.") },
+            text = { Text("Der Fortschritt des Profils „${Repo.profile.name}“ wird durch die Sicherung ersetzt.") },
             confirmButton = {
                 TextButton(onClick = {
                     val result = runCatching { Repo.importJson(text) }

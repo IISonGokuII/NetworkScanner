@@ -74,6 +74,9 @@ import com.mycompany.synapse.data.Achievement
 import com.mycompany.synapse.data.Repo
 import com.mycompany.synapse.data.SessionInput
 import com.mycompany.synapse.data.SessionOutcome
+import com.mycompany.synapse.data.TagSample
+import com.mycompany.synapse.game.Leveling
+import com.mycompany.synapse.ui.ResumeState
 import com.mycompany.synapse.feedback.Feedback
 import com.mycompany.synapse.game.GameCatalog
 import com.mycompany.synapse.game.GameInfo
@@ -86,6 +89,7 @@ import com.mycompany.synapse.ui.WorkoutRun
 import com.mycompany.synapse.ui.components.DomainGlyph
 import com.mycompany.synapse.ui.components.GlassCard
 import com.mycompany.synapse.ui.components.ParticleBurst
+import com.mycompany.synapse.ui.components.reducedMotion
 import com.mycompany.synapse.ui.components.Pill
 import com.mycompany.synapse.ui.components.PrimaryButton
 import com.mycompany.synapse.ui.components.SecondaryButton
@@ -117,8 +121,11 @@ fun PlayScreen(screen: Screen.Play, nav: Navigator) {
     val game = GameCatalog[screen.gameId]
     val accent = Synapse.colors.domain(game.domain)
     val workout = screen.workout
-    var phase by remember { mutableStateOf(Phase.INTRO) }
-    var mode by remember { mutableStateOf(if (workout != null) GameMode.STANDARD else screen.presetMode ?: GameMode.STANDARD) }
+    val resume = screen.resume
+    var phase by remember { mutableStateOf(if (resume != null) Phase.COUNTDOWN else Phase.INTRO) }
+    var mode by remember {
+        mutableStateOf(resume?.mode ?: if (workout != null) GameMode.STANDARD else screen.presetMode ?: GameMode.STANDARD)
+    }
     var outcome by remember { mutableStateOf<SessionOutcome?>(null) }
     var runId by remember { mutableIntStateOf(0) }
     var confirmExit by remember { mutableStateOf(false) }
@@ -142,8 +149,9 @@ fun PlayScreen(screen: Screen.Play, nav: Navigator) {
                 Phase.PLAYING -> key(runId) {
                     SessionRunner(
                         game = game, level = Repo.level(game.id), mode = mode, accent = accent,
-                        workout = workout != null, onExit = { confirmExit = true },
+                        workout = workout, resume = if (runId == 0) resume else null, onExit = { confirmExit = true },
                         onFinish = { input ->
+                            Repo.clearResume()
                             outcome = Repo.saveSession(input)
                             phase = Phase.RESULT
                         },
@@ -173,7 +181,7 @@ fun PlayScreen(screen: Screen.Play, nav: Navigator) {
                 onDismissRequest = { confirmExit = false },
                 title = { Text("Runde abbrechen?") },
                 text = { Text("Diese Runde wird nicht gewertet. Bereits abgeschlossene Spiele bleiben gespeichert.") },
-                confirmButton = { TextButton(onClick = { confirmExit = false; nav.pop() }) { Text("Abbrechen") } },
+                confirmButton = { TextButton(onClick = { confirmExit = false; Repo.clearResume(); nav.pop() }) { Text("Abbrechen") } },
                 dismissButton = { TextButton(onClick = { confirmExit = false }) { Text("Weiterspielen") } },
                 containerColor = Synapse.colors.surfaceStrong,
                 titleContentColor = Synapse.colors.textPrimary,
@@ -255,7 +263,7 @@ private fun IntroView(
                 }
             }
             if (workout == null) {
-                val modes = GameMode.entries.filter { it != GameMode.SPRINT || game.supportsSprint }
+                val modes = GameMode.playable.filter { it != GameMode.SPRINT || game.supportsSprint }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (m in modes) SelectChip(m.title, m == mode, accent) { onMode(m) }
                 }
@@ -309,39 +317,51 @@ private fun SessionRunner(
     level: Int,
     mode: GameMode,
     accent: Color,
-    workout: Boolean,
+    workout: WorkoutRun?,
+    resume: ResumeState?,
     onExit: () -> Unit,
     onFinish: (SessionInput) -> Unit,
 ) {
     val c = Synapse.colors
     val zen = mode == GameMode.ZEN
     val sprint = mode == GameMode.SPRINT
-    val startedAt = remember { System.currentTimeMillis() }
-    val clock = remember { now() }
-    val seedBase = remember { Random.nextLong() }
-    var trial by remember { mutableIntStateOf(0) }
-    val results = remember { mutableStateListOf<TrialResult>() }
-    var combo by remember { mutableIntStateOf(0) }
-    var bestCombo by remember { mutableIntStateOf(0) }
-    var score by remember { mutableIntStateOf(0) }
+    val startLevel = resume?.startLevel ?: level
+    val startedAt = remember { resume?.startedAt ?: System.currentTimeMillis() }
+    val clock = remember { now() - (resume?.elapsedMs ?: 0L) }
+    val seedBase = remember { resume?.seedBase ?: Random.nextLong() }
+    val results = remember { mutableStateListOf<TrialResult>().apply { resume?.let { addAll(it.results) } } }
+    val trialLevels = remember { mutableStateListOf<Int>().apply { resume?.let { addAll(it.trialLevels) } } }
+    var trial by remember { mutableIntStateOf(results.size) }
+    var curLevel by remember { mutableIntStateOf(resume?.curLevel ?: startLevel) }
+    var upStreak by remember { mutableIntStateOf(resume?.upStreak ?: 0) }
+    var downStreak by remember { mutableIntStateOf(resume?.downStreak ?: 0) }
+    var combo by remember { mutableIntStateOf(resume?.combo ?: 0) }
+    var bestCombo by remember { mutableIntStateOf(resume?.bestCombo ?: 0) }
+    var score by remember { mutableIntStateOf(resume?.score ?: 0) }
     var lastPoints by remember { mutableIntStateOf(0) }
+    var levelNote by remember { mutableStateOf<String?>(null) }
     var feedback by remember { mutableStateOf<TrialResult?>(null) }
     var particles by remember { mutableIntStateOf(0) }
     var finished by remember { mutableStateOf(false) }
     var remaining by remember { mutableLongStateOf(SPRINT_MS) }
     val shake = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    val motion = !reducedMotion()
 
     fun finish() {
         if (finished) return
         finished = true
         val timed = results.filter { it.timeMs > 0 }
+        val tags = results.filter { it.tag != null }.groupBy { it.tag!! }.map { (tag, list) ->
+            TagSample(tag, list.sumOf { it.correct }, list.sumOf { it.total }, list.sumOf { it.timeMs })
+        }
         onFinish(
             SessionInput(
-                gameId = game.id, mode = mode, startedAt = startedAt, durationMs = since(clock), level = level,
+                gameId = game.id, mode = mode, startedAt = startedAt, durationMs = since(clock), level = startLevel,
                 correct = results.sumOf { it.correct }, total = results.sumOf { it.total },
                 avgMs = if (timed.isEmpty()) 0L else timed.map { it.timeMs }.average().toLong(),
-                score = score, bestCombo = bestCombo, trials = results.size, workout = workout,
+                score = score, bestCombo = bestCombo, trials = results.size, workout = workout != null,
+                endLevel = curLevel, playedLevel = if (trialLevels.isEmpty()) null else trialLevels.average(), tags = tags,
             )
         )
     }
@@ -362,6 +382,8 @@ private fun SessionRunner(
     fun onTrial(r: TrialResult) {
         if (feedback != null || finished) return
         results += r
+        trialLevels += curLevel
+        val base = 10 + curLevel * 2
         if (r.success) {
             combo++
             bestCombo = maxOf(bestCombo, combo)
@@ -370,17 +392,31 @@ private fun SessionRunner(
         } else {
             combo = 0
             Feedback.wrong()
-            scope.launch {
+            if (motion) scope.launch {
                 for (x in listOf(22f, -18f, 14f, -9f, 5f, 0f)) shake.animateTo(x, tween(45))
             }
         }
-        val base = 10 + level * 2
+        // Mikro-Anpassung: 3 Erfolge in Folge → schwerer, 2 Fehler in Folge → leichter
+        if (game.microAdapt) {
+            if (r.success) { upStreak++; downStreak = 0 } else { downStreak++; upStreak = 0 }
+            if (upStreak >= 3 && curLevel < minOf(startLevel + 3, Leveling.MAX_LEVEL)) {
+                curLevel++; upStreak = 0; levelNote = "Level ▲ $curLevel"
+            } else if (downStreak >= 2 && curLevel > maxOf(1, startLevel - 2)) {
+                curLevel--; downStreak = 0; levelNote = "Level ▼ $curLevel"
+            }
+        }
         val speed = if (zen || !game.speedMatters || r.timeMs <= 0) 1.0
-        else (game.targetMs(level).toDouble() / r.timeMs).coerceIn(0.6, 1.8)
+        else (game.targetMs(trialLevels.last()).toDouble() / r.timeMs).coerceIn(0.6, 1.8)
         val mult = 1.0 + min(combo, 20) * 0.05
         lastPoints = (base * r.fraction * speed * mult).roundToInt()
         score += lastPoints
         feedback = r
+        Repo.saveResume(
+            ResumeState(
+                game.id, mode, startLevel, curLevel, seedBase, results.toList(), trialLevels.toList(), score, combo,
+                bestCombo, upStreak, downStreak, startedAt, since(clock), System.currentTimeMillis(), workout,
+            ).toJson()
+        )
     }
 
     LaunchedEffect(feedback) {
@@ -392,6 +428,9 @@ private fun SessionRunner(
             trial++
             feedback = null
         }
+    }
+    LaunchedEffect(levelNote) {
+        if (levelNote != null) { delay(1400); levelNote = null }
     }
 
     val glow by animateFloatAsState(0.03f + min(combo, 15) * 0.02f, tween(500), label = "glow")
@@ -413,8 +452,8 @@ private fun SessionRunner(
                     Text(game.title, style = MaterialTheme.typography.titleMedium, color = c.textPrimary, maxLines = 1)
                     Text(
                         when {
-                            sprint -> "Sprint · Level $level"
-                            else -> "${(results.size + if (feedback == null) 1 else 0).coerceAtMost(game.trials)} / ${game.trials} · Level $level"
+                            sprint -> "Sprint · Level $curLevel"
+                            else -> "${(results.size + if (feedback == null) 1 else 0).coerceAtMost(game.trials)} / ${game.trials} · Level $curLevel"
                         },
                         style = MaterialTheme.typography.labelMedium, color = c.textMuted,
                     )
@@ -458,12 +497,19 @@ private fun SessionRunner(
                     .graphicsLayer { translationX = shake.value }
             ) {
                 key(trial) {
-                    GameTrial(game.id, TrialContext(level, seedBase + trial * 7919L, zen, accent), ::onTrial)
+                    GameTrial(game.id, TrialContext(curLevel, seedBase + trial * 7919L, zen, accent), ::onTrial)
                 }
             }
         }
 
-        ParticleBurst(particles, accent, Modifier.fillMaxSize())
+        if (motion) ParticleBurst(particles, accent, Modifier.fillMaxSize())
+        AnimatedVisibility(
+            visible = levelNote != null,
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 96.dp, end = 16.dp),
+            enter = fadeIn(), exit = fadeOut(),
+        ) {
+            Pill(levelNote ?: "", accent)
+        }
 
         // Rückmeldung
         val fb = feedback

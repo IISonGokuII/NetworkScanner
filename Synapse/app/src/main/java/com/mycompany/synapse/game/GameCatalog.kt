@@ -5,16 +5,22 @@ import com.mycompany.synapse.game.logic.ArithmeticGen
 import com.mycompany.synapse.game.logic.BalanceGen
 import com.mycompany.synapse.game.logic.ChainGen
 import com.mycompany.synapse.game.logic.CorsiGen
+import com.mycompany.synapse.game.logic.EstimateGen
 import com.mycompany.synapse.game.logic.MatrixGen
 import com.mycompany.synapse.game.logic.NBackGen
+import com.mycompany.synapse.game.logic.NamesGen
 import com.mycompany.synapse.game.logic.OddOneGen
+import com.mycompany.synapse.game.logic.PathGen
 import com.mycompany.synapse.game.logic.RotationGen
 import com.mycompany.synapse.game.logic.SchulteGen
 import com.mycompany.synapse.game.logic.SequenceGen
+import com.mycompany.synapse.game.logic.ShoppingGen
 import com.mycompany.synapse.game.logic.SpanGen
 import com.mycompany.synapse.game.logic.StroopGen
+import com.mycompany.synapse.game.logic.SudokuGen
 import com.mycompany.synapse.game.logic.SyllogismGen
 import com.mycompany.synapse.game.logic.TargetGen
+import com.mycompany.synapse.game.logic.WeekdayGen
 
 /** Metadaten eines Spiels – unabhängig von der Oberfläche, damit Statistik & Tests ohne UI laufen. */
 open class GameInfo(
@@ -28,6 +34,8 @@ open class GameInfo(
     val speedMatters: Boolean = true,
     private val target: (Int) -> Long = { 3000L },
     private val labelFn: (Int) -> String = { "" },
+    /** Schwierigkeit passt sich schon innerhalb der Runde an (nur bei vielen kurzen Aufgaben sinnvoll). */
+    val microAdapt: Boolean = trials >= 8,
 ) {
     fun targetMs(level: Int): Long = target(level.coerceIn(1, Leveling.MAX_LEVEL))
     fun levelLabel(level: Int): String = labelFn(level.coerceIn(1, Leveling.MAX_LEVEL))
@@ -61,9 +69,25 @@ object GameCatalog {
             labelFn = { "${TargetGen.numberCount(it)} Zahlen · ${TargetGen.ops(it).joinToString(" ") { c -> TargetGen.symbol(c) }}" },
         ),
         GameInfo(
+            "wochentag", Domain.RECHNEN, "Wochentag", "Kalenderrechnen im Kopf",
+            "Finde den Wochentag. Erst geht es um „in 9 Tagen“, später um ganze Daten – mit Anker-Hinweis " +
+                "und schließlich ganz ohne. Der Lernen-Bereich erklärt die Doomsday-Methode.",
+            trials = 10, supportsSprint = true, target = { 6000L + it * 250L }, labelFn = WeekdayGen::mode,
+        ),
+        GameInfo(
+            "schaetzen", Domain.RECHNEN, "Schätzen", "Überschlagen statt ausrechnen",
+            "Nicht genau rechnen – schnell überschlagen! Tippe den Wert, der dem Ergebnis am nächsten liegt.",
+            trials = 12, supportsSprint = true, target = { 4500L }, labelFn = EstimateGen::label,
+        ),
+        GameInfo(
             "folgen", Domain.LOGIK, "Zahlenfolgen", "Das System dahinter finden",
             "Welche Zahl kommt als Nächstes? Finde die Regel hinter der Folge.",
             trials = 10, supportsSprint = true, target = { 6000L + it * 120L }, labelFn = SequenceGen::label,
+        ),
+        GameInfo(
+            "sudoku", Domain.LOGIK, "Mini-Sudoku", "Zahlen logisch platzieren",
+            "Jede Zahl darf in jeder Zeile, Spalte und jedem Kasten nur einmal vorkommen. Tippe ein Feld, dann die Zahl.",
+            trials = 3, target = { if (SudokuGen.size(it) == 4) 50_000L else 170_000L - it * 1500L }, labelFn = SudokuGen::label,
         ),
         GameInfo(
             "matrix", Domain.LOGIK, "Muster-Matrix", "Regeln in Formen erkennen",
@@ -96,6 +120,18 @@ object GameCatalog {
                 else -> 0
             }
         },
+        GameInfo(
+            "namen", Domain.GEDAECHTNIS, "Namen merken", "Gesichter & Namen verbinden",
+            "Du lernst einige Personen kennen. Danach siehst du die Gesichter wieder – wie hieß wer? " +
+                "Tipp: Verknüpfe den Namen mit einem auffälligen Merkmal.",
+            trials = 2, speedMatters = false, labelFn = NamesGen::label,
+        ),
+        GameInfo(
+            "einkauf", Domain.GEDAECHTNIS, "Einkaufsliste", "Dinge im Kopf behalten",
+            "Präge dir die Einkaufsliste ein. Danach tippst du alle Dinge an, die darauf standen – " +
+                "ab höheren Stufen in der richtigen Reihenfolge.",
+            trials = 3, speedMatters = false, labelFn = ShoppingGen::label,
+        ),
         GameInfo(
             "corsi", Domain.GEDAECHTNIS, "Corsi-Pfad", "Räumliche Folgen merken",
             "Felder leuchten nacheinander auf. Tippe sie danach in derselben Reihenfolge an – ab höheren Stufen rückwärts.",
@@ -131,6 +167,12 @@ object GameCatalog {
             "rotation", Domain.RAUM, "Würfel-Rotation", "Gleich oder gespiegelt?",
             "Die rechte Figur ist gedreht. Ist sie dieselbe Figur wie links – oder ein Spiegelbild?",
             trials = 12, supportsSprint = true, target = { 6000L + it * 100L }, labelFn = RotationGen::label,
+        ),
+        GameInfo(
+            "weg", Domain.RAUM, "Weg im Kopf", "Wege vorstellen ohne Karte",
+            "Merke dir den Startpunkt. Dann kommen Wegbeschreibungen – gehe sie im Kopf mit und tippe das Ziel an. " +
+                "Ab höheren Stufen zählt die Blickrichtung: „rechts“ heißt drehen.",
+            trials = 8, speedMatters = false, labelFn = PathGen::label,
         ),
         GameInfo(
             "anagramm", Domain.SPRACHE, "Wortsalat", "Buchstaben ordnen",

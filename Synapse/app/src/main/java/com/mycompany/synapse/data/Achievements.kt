@@ -16,8 +16,12 @@ class AchievementContext(
     val overallIndex: Int,
     val firstIndex: Int?,
     val zone: ZoneId = ZoneId.systemDefault(),
+    val masteredLessons: Int = 0,
+    val benchmarks: Int = 0,
+    val placementDone: Boolean = false,
 ) {
     val totalMinutes: Int by lazy { (records.sumOf { it.durationMs } / 60_000).toInt() }
+    val trainingRecords: List<SessionRecord> by lazy { records.filter { !it.isTest } }
     fun maxLevel(gameId: String) = records.filter { it.gameId == gameId }.maxOfOrNull { maxOf(it.level, it.newLevel) } ?: 0
 }
 
@@ -40,9 +44,9 @@ object Achievements {
         Instant.ofEpochMilli(r.startedAt).atZone(ctx.zone).hour
 
     val all: List<Achievement> = listOf(
-        Achievement("first", "Erster Schritt", "Schließe dein erstes Training ab", 0) { count(it.records.size, 1) },
-        Achievement("s50", "Fleißig", "50 Trainings abgeschlossen", 1) { count(it.records.size, 50) },
-        Achievement("s250", "Unermüdlich", "250 Trainings abgeschlossen", 2) { count(it.records.size, 250) },
+        Achievement("first", "Erster Schritt", "Schließe dein erstes Training ab", 0) { count(it.trainingRecords.size, 1) },
+        Achievement("s50", "Fleißig", "50 Trainings abgeschlossen", 1) { count(it.trainingRecords.size, 50) },
+        Achievement("s250", "Unermüdlich", "250 Trainings abgeschlossen", 2) { count(it.trainingRecords.size, 250) },
         Achievement("streak3", "Dranbleiber", "3 Tage in Folge trainiert", 0) { count(it.bestStreak, 3) },
         Achievement("streak7", "Gewohnheit", "7-Tage-Serie", 1) { count(it.bestStreak, 7) },
         Achievement("streak30", "Eiserner Wille", "30-Tage-Serie", 2) { count(it.bestStreak, 30) },
@@ -52,10 +56,10 @@ object Achievements {
             count(ctx.records.map { it.domain }.toSet().size, Domain.entries.size)
         },
         Achievement("collector", "Entdecker", "Alle ${GameCatalog.all.size} Spiele ausprobiert", 1) { ctx ->
-            count(ctx.records.map { it.gameId }.toSet().size, GameCatalog.all.size)
+            count(ctx.trainingRecords.map { it.gameId }.toSet().size, GameCatalog.all.size)
         },
         Achievement("perfect", "Perfektionist", "100 % Trefferquote in einer Session mit mind. 8 Aufgaben", 1) { ctx ->
-            flag(ctx.records.any { it.trials >= 8 && it.correct == it.total && it.total > 0 })
+            flag(ctx.trainingRecords.any { it.trials >= 8 && it.correct == it.total && it.total > 0 })
         },
         Achievement("flow10", "Im Flow", "10 richtige Antworten in Folge", 0) { ctx -> count(ctx.records.maxOfOrNull { it.bestCombo } ?: 0, 10) },
         Achievement("flow25", "Flow-Legende", "25 richtige Antworten in Folge", 2) { ctx -> count(ctx.records.maxOfOrNull { it.bestCombo } ?: 0, 25) },
@@ -77,5 +81,12 @@ object Achievements {
         },
         Achievement("index500", "Denkmaschine", "Gesamt-Index 500 erreicht", 2) { count(it.overallIndex, 500) },
         Achievement("duel", "Duellant", "Ein Duell gespielt", 0) { count(it.duelsPlayed, 1) },
+        Achievement("placement", "Standortbestimmung", "Einstufungstest abgeschlossen", 0) { flag(it.placementDone) },
+        Achievement("bench1", "Messlatte", "Ersten Leistungstest gemacht", 0) { count(it.benchmarks, 1) },
+        Achievement("bench3", "Langstrecke", "3 Leistungstests über mehrere Monate", 2) { count(it.benchmarks, 3) },
+        Achievement("trick1", "Trickkiste", "Einen Rechentrick gemeistert", 0) { count(it.masteredLessons, 1) },
+        Achievement("trick5", "Kopfrechen-Profi", "5 Tricks gemeistert", 1) { count(it.masteredLessons, 5) },
+        Achievement("calendar", "Kalender-Genie", "Wochentag Level 25 erreicht", 2) { count(it.maxLevel("wochentag"), 25) },
+        Achievement("sudoku", "Rätselfuchs", "Mini-Sudoku Level 15 erreicht", 1) { count(it.maxLevel("sudoku"), 15) },
     )
 }
