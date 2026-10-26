@@ -49,3 +49,11 @@ app/src/main/res/menu/         — Navigation
 - ACCESS_WIFI_STATE — WLAN-Informationen
 - CHANGE_WIFI_STATE — WLAN-Scan
 - ACCESS_FINE_LOCATION — WLAN-Scan (Android 10+)
+
+---
+
+## Neu im Repo: Synapse – Gehirnjogging-App
+
+Im Ordner [`Synapse/`](Synapse/) liegt eine eigenständige Gehirnjogging-App (Rechnen, Logik, Gedächtnis,
+Fokus, Raumdenken, Sprache) – werbefrei und offline. Details und APK-Download: [Synapse/README.md](Synapse/README.md).
+

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="night_bg">#070B1A</color>
+    <color name="widget_bg">#E60B1130</color>
+    <color name="cyan">#22D3EE</color>
+    <color name="violet">#A78BFA</color>
+    <color name="text_primary">#EEF2FF</color>
+    <color name="text_secondary">#9AA3C7</color>
+    <color name="ic_launcher_background">#070B1A</color>
+</resources>

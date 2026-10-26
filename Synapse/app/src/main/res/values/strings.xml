@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Synapse</string>
+    <string name="widget_name">Synapse – Aufgabe des Tages</string>
+    <string name="widget_description">Jeden Tag eine neue Denkaufgabe auf dem Startbildschirm</string>
+</resources>
